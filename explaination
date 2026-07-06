@@ -1,0 +1,314 @@
+AI Agent Module 1 - Explanation
+
+This file explains what has been built so far in simple words.
+The goal is to help beginners understand how each file works and how the project pieces connect.
+
+1. What this project is
+
+This project is a small AI agent backend built from scratch with Python, FastAPI, and a local Ollama model.
+We are not using LangChain, CrewAI, AutoGen, databases, RAG, tools, Docker, or a frontend.
+The idea is to learn the core building blocks first and keep the code easy to follow.
+
+2. Folder structure
+
+The project now has these main parts:
+
+- app/
+- logs/
+- tests/
+- requirements.txt
+- .gitignore
+- README.md
+- explaination
+
+The app folder contains the Python code.
+The logs folder stores log files.
+The tests folder stores automated tests.
+
+3. File-by-file explanation
+
+app/__init__.py
+
+This file tells Python that the app folder is a package.
+It does not contain logic.
+It exists so imports like `from app.routes import router` work cleanly.
+
+app/main.py
+
+This is the FastAPI entry point.
+It creates the FastAPI app, applies logging setup, registers error handlers, and includes the router.
+
+Why it exists:
+It keeps startup code in one small place.
+
+How it connects to the rest of the project:
+It creates shared app state objects like the Conversation Manager and Prompt Builder, which the routes use later.
+
+app/routes.py
+
+This file contains the API endpoints.
+It uses APIRouter so the route logic stays separate from app startup.
+
+It provides two endpoints:
+
+- GET /health
+- POST /chat
+
+Why it exists:
+It keeps the HTTP layer organized.
+
+How it connects to the rest of the project:
+It receives the request, asks the Prompt Builder to create messages, sends those messages to the Ollama Client, and returns the response.
+
+Simple flow inside /chat:
+
+1. The user sends a message.
+2. FastAPI validates the JSON using Pydantic.
+3. The route asks PromptBuilder to build the final Ollama message list.
+4. The route sends the messages to Ollama.
+5. The route stores the latest messages in ConversationManager.
+6. The route returns the assistant response.
+
+app/config.py
+
+This file stores all configurable values in one place.
+It includes the Ollama URL, model name, system prompt, maximum history size, request timeout, log level, API title, API version, and logging file settings.
+
+Why it exists:
+It prevents hard-coded values from being scattered across many files.
+
+How it connects to the rest of the project:
+The Prompt Builder, Conversation Manager, logging setup, and Ollama Client all read from this configuration.
+
+app/schemas.py
+
+This file defines the Pydantic models for request and response validation.
+
+Models in this file:
+
+- HealthResponse
+- ChatRequest
+- ChatResponse
+- ValidationErrorResponse
+
+Why it exists:
+It makes the API input and output shapes explicit.
+
+How it connects to the rest of the project:
+FastAPI uses these models to validate incoming requests and to document the API responses.
+
+ChatRequest expects:
+
+```json
+{
+  "message": "Hello"
+}
+```
+
+ChatResponse returns:
+
+```json
+{
+  "response": "..."
+}
+```
+
+app/prompts.py
+
+This file contains `PromptBuilder`.
+It builds the list of messages that Ollama expects.
+
+Why it exists:
+Prompt logic should not live inside the route function.
+
+How it connects to the rest of the project:
+It reads the previous conversation messages from `ConversationManager`, adds the system prompt, and appends the newest user message.
+
+Returned message order:
+
+```python
+[
+    {"role": "system", "content": "You are a helpful AI assistant."},
+    ...previous_messages,
+    {"role": "user", "content": "New message"},
+]
+```
+
+app/conversation.py
+
+This file contains `ConversationManager`.
+It stores chat history in memory and keeps only the newest configured number of messages.
+
+Why it exists:
+The project needs short conversation history, but not permanent storage.
+
+How it connects to the rest of the project:
+The Prompt Builder reads from it, and the chat route writes the latest user and assistant messages back into it.
+
+Important methods:
+
+- `add_user_message()` stores a user message.
+- `add_assistant_message()` stores an assistant message.
+- `clear_history()` removes all stored messages.
+- `get_messages()` returns the stored messages in order.
+
+app/ollama_client.py
+
+This file is the only place that talks to Ollama over HTTP.
+It uses `requests.post()` to send the prompt to the local server.
+
+It sends requests to:
+
+```text
+http://localhost:11434/api/chat
+```
+
+Why it exists:
+Keeping Ollama communication in one file makes the rest of the application easier to understand.
+
+How it connects to the rest of the project:
+The route sends a prepared message list here, and this file returns the assistant text.
+
+What it does:
+
+1. Builds the API URL.
+2. Sends the model name and messages.
+3. Handles timeouts.
+4. Handles connection failures.
+5. Handles invalid JSON.
+6. Handles empty responses.
+7. Tries a fallback model when the primary model name is not found.
+
+app/logging_utils.py
+
+This file sets up logging.
+It uses Python's built-in logging tools and writes logs to the logs folder.
+
+Why it exists:
+Logging helps us see what the app is doing and helps us debug problems.
+
+How it connects to the rest of the project:
+The app logs startup, requests, user messages, AI responses, warnings, and errors.
+
+app/error_handlers.py
+
+This file makes FastAPI errors friendlier.
+It converts validation errors, HTTP errors, and unexpected errors into clear JSON responses.
+
+Why it exists:
+Beginners should see understandable error messages instead of confusing server traces.
+
+How it connects to the rest of the project:
+The handlers are registered during app startup and apply to the whole API.
+
+app/utils.py
+
+This file contains reusable helper functions.
+It includes timestamp generation, execution timing, safe JSON formatting, and text cleanup.
+
+Why it exists:
+Small helpers should live in one place instead of being duplicated.
+
+How it connects to the rest of the project:
+The middleware uses the execution timer, the route uses text cleanup, and logging uses safe JSON formatting.
+
+requirements.txt
+
+This file lists the packages needed to run the project.
+It includes FastAPI, Uvicorn, Requests, Pytest, and HTTPX.
+
+Why it exists:
+It makes installation simple and repeatable.
+
+How it connects to the rest of the project:
+Running `pip install -r requirements.txt` installs everything needed for the API and tests.
+
+.gitignore
+
+This file tells Git what to ignore.
+It skips virtual environments, cache files, log files, and other local-only files.
+
+Why it exists:
+It keeps the repository clean.
+
+How it connects to the rest of the project:
+It prevents generated files from being committed accidentally.
+
+README.md
+
+This is the beginner guide for the project.
+It explains the architecture, installation, request flow, logging, testing, and future roadmap.
+
+Why it exists:
+It shows a new learner how to run and understand the project.
+
+How it connects to the rest of the project:
+It matches the current code and teaches the same structure you see in the source files.
+
+logs/.gitkeep
+
+This file keeps the logs folder in Git even when it is empty.
+
+Why it exists:
+Git does not track empty folders.
+
+How it connects to the rest of the project:
+It ensures the logs folder is present in the repository.
+
+tests/.gitkeep
+
+This file keeps the tests folder in Git even when it is empty.
+
+Why it exists:
+The folder needs to exist now so we can add tests easily.
+
+How it connects to the rest of the project:
+It is replaced by real test files in this module.
+
+tests/test_module1.py
+
+This file contains the automated tests for Module 1.
+
+Why it exists:
+Tests help us check that the API and helper classes behave as expected.
+
+How it connects to the rest of the project:
+It verifies the health endpoint, chat endpoint, validation, Ollama error handling, ConversationManager, and PromptBuilder.
+
+4. API configuration explained simply
+
+The app runs with a local Ollama server.
+The server address is `http://localhost:11434`.
+The main model name is `qwen3`, and the app can fall back to `qwen3:8b` if needed.
+
+The request flow is:
+
+1. FastAPI receives the request.
+2. Pydantic validates the request body.
+3. PromptBuilder creates the final message list.
+4. ConversationManager provides short chat history.
+5. OllamaClient sends the messages to the local server.
+6. The route returns the AI response.
+
+5. Why the project is arranged this way
+
+Each file has one clear job.
+That makes the code easier to read, easier to test, and easier to extend later.
+This is especially helpful for beginners because each concept stays separated instead of being mixed together.
+
+6. What we learned from this step
+
+- FastAPI is good for clean API structure.
+- APIRouter keeps routes organized.
+- Pydantic helps validate request data.
+- A Prompt Builder keeps prompt logic separate from the web layer.
+- A Conversation Manager keeps short history in memory without a database.
+- A dedicated Ollama Client keeps model communication isolated.
+- Logging helps with debugging and understanding execution flow.
+- Tests help confirm that the project still works after changes.
+
+7. Current project status
+
+The project now has a working `GET /health` endpoint and a working `POST /chat` endpoint.
+It stores short chat history in memory, builds prompts correctly, sends them to the local Ollama server, returns AI responses, logs important events, and has automated tests.
+The backend is now in a good shape for the next module.
