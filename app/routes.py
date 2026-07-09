@@ -110,7 +110,7 @@ def chat(
     """Send a user message to Ollama and return the assistant response."""
 
     logger.info("User message received: %s", request.message)
-    messages = prompt_builder.build_messages(request.message)
+    messages = conversation_manager.build_messages(prompt_builder, request.message)
 
     try:
         response_text = generate_chat_response(messages)
@@ -121,10 +121,11 @@ def chat(
     except OllamaResponseError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
     except OllamaClientError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
 
     conversation_manager.add_user_message(request.message)
     conversation_manager.add_assistant_message(response_text)
+    conversation_manager.save_memory_if_important(request.message)
     logger.info("Assistant response sent: %s", response_text)
 
     return ChatResponse(response=response_text)
