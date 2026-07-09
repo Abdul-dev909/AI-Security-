@@ -10,3 +10,4 @@ env/
 logs/*.log
 *.log
 .DS_Store
+memory.db
