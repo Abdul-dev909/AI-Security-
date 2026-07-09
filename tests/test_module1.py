@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
 from app.conversation import ConversationManager
+from app.memory_manager import MemoryManager
+import app.database as database
 from app.ollama_client import OllamaConnectionError
 from app.prompts import PromptBuilder
 from app.main import app
@@ -13,10 +17,22 @@ import app.routes as routes
 
 
 @pytest.fixture()
-def client() -> TestClient:
+def memory_manager(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> MemoryManager:
+    """Create a temporary database-backed MemoryManager for tests."""
+
+    test_database_path = tmp_path / "memory.db"
+    monkeypatch.setattr(database, "DB_PATH", test_database_path)
+    database.initialize_database()
+    return MemoryManager()
+
+
+@pytest.fixture()
+def client(memory_manager: MemoryManager) -> TestClient:
     """Create a fresh test client and clear conversation history."""
 
     with TestClient(app) as test_client:
+        test_client.app.state.memory_manager = memory_manager
+        test_client.app.state.conversation_manager.memory_manager = memory_manager
         test_client.app.state.conversation_manager.clear_history()
         yield test_client
         test_client.app.state.conversation_manager.clear_history()
@@ -82,10 +98,10 @@ def test_chat_ollama_unavailable(client: TestClient, monkeypatch: pytest.MonkeyP
     assert response.json()["detail"] == "Could not connect to the local Ollama server."
 
 
-def test_conversation_manager_keeps_latest_messages() -> None:
+def test_conversation_manager_keeps_latest_messages(memory_manager: MemoryManager) -> None:
     """ConversationManager should store only the newest messages."""
 
-    manager = ConversationManager(max_history=3)
+    manager = ConversationManager(memory_manager=memory_manager, max_history=3)
     manager.add_user_message("First")
     manager.add_assistant_message("Second")
     manager.add_user_message("Third")
@@ -98,10 +114,10 @@ def test_conversation_manager_keeps_latest_messages() -> None:
     ]
 
 
-def test_conversation_manager_clear_history() -> None:
+def test_conversation_manager_clear_history(memory_manager: MemoryManager) -> None:
     """clear_history should remove all stored messages."""
 
-    manager = ConversationManager(max_history=5)
+    manager = ConversationManager(memory_manager=memory_manager, max_history=5)
     manager.add_user_message("Hello")
     manager.add_assistant_message("Hi")
 
@@ -110,10 +126,10 @@ def test_conversation_manager_clear_history() -> None:
     assert manager.get_messages() == []
 
 
-def test_prompt_builder_uses_system_prompt_and_history() -> None:
+def test_prompt_builder_uses_system_prompt_and_history(memory_manager: MemoryManager) -> None:
     """PromptBuilder should combine the system prompt, history, and new message."""
 
-    manager = ConversationManager(max_history=5)
+    manager = ConversationManager(memory_manager=memory_manager, max_history=5)
     manager.add_user_message("Earlier question")
     manager.add_assistant_message("Earlier answer")
 
