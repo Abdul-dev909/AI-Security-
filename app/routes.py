@@ -10,6 +10,7 @@ import logging
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 
+from app.config import settings
 from app.conversation import ConversationManager
 from app.ollama_client import (
     OllamaClientError,
@@ -114,14 +115,9 @@ def chat(
 
     try:
         response_text = generate_chat_response(messages)
-    except OllamaTimeoutError as exc:
-        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail=str(exc)) from exc
-    except OllamaConnectionError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-    except OllamaResponseError as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
-    except OllamaClientError as exc:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except (OllamaTimeoutError, OllamaConnectionError, OllamaResponseError, OllamaClientError) as exc:
+        logger.warning("Falling back to a graceful response because Ollama failed: %s", exc)
+        response_text = settings.FALLBACK_RESPONSE
 
     conversation_manager.add_user_message(request.message)
     conversation_manager.add_assistant_message(response_text)

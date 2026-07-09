@@ -1,218 +1,236 @@
-# AI Agent Module 1
+# AI Agent Project
 
-This project is a beginner-friendly AI agent backend built from scratch with Python, FastAPI, and a local Ollama model.
-The code is intentionally small and modular so students can learn one idea at a time.
+This project is a beginner-friendly AI agent backend built with Python, FastAPI, and a local Ollama model. It now also includes a SQLite-backed memory system, automated pytest coverage, and graceful fallback behavior when the AI service is unavailable.
 
 ## Project Overview
 
-The application exposes two HTTP endpoints:
+The application exposes two primary HTTP endpoints:
 
-- `GET /health` to confirm the API is running
-- `POST /chat` to send a message to the local Ollama model and get a reply
+- `GET /health` to confirm that the API is running
+- `POST /chat` to send a user message to the application and receive a response
 
-The main goal of Module 1 is to keep the backend clean, readable, and easy to extend later without major rewrites.
+The project is intentionally modular so students can learn one concept at a time without a large framework layer.
 
-## Architecture Diagram
+## Current Features
+
+- FastAPI application with startup and request logging
+- Input validation with Pydantic models
+- Conversation history handling
+- SQLite-based memory storage and retrieval
+- Memory search, update, delete, and load operations
+- Fallback response when Ollama is slow or unavailable
+- Automated tests with pytest
+
+## Architecture Summary
 
 ```mermaid
 flowchart TD
-		A[User / curl / client] --> B[FastAPI route]
-		B --> C[Pydantic request validation]
-		C --> D[Prompt Builder]
-		D --> E[Conversation Manager]
-		E --> F[Ollama Client]
-		F --> G[Local Ollama server\nhttp://localhost:11434]
-		G --> F
-		F --> B
-		B --> H[JSON response]
+    A[User / curl / client] --> B[FastAPI route]
+    B --> C[Conversation Manager]
+    C --> D[Prompt Builder]
+    D --> E[Ollama Client]
+    E --> F[Local Ollama server]
+    C --> G[MemoryManager]
+    G --> H[SQLite database: memory.db]
+    E --> B
+    B --> I[JSON response]
 ```
 
-## Folder Structure
+## Project Structure
 
 ```text
-AI-Agent/
+AI-Security/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py
-│   ├── routes.py
 │   ├── config.py
-│   ├── schemas.py
-│   ├── prompts.py
 │   ├── conversation.py
-│   ├── ollama_client.py
-│   ├── logging_utils.py
+│   ├── database.py
 │   ├── error_handlers.py
+│   ├── logging_utils.py
+│   ├── main.py
+│   ├── memory_manager.py
+│   ├── ollama_client.py
+│   ├── prompts.py
+│   ├── routes.py
+│   ├── schemas.py
 │   └── utils.py
 ├── logs/
 ├── tests/
-├── requirements.txt
-├── .gitignore
 ├── README.md
-└── explaination
+├── explaination
+├── memory.db
+├── requirements.txt
+└── .gitignore
 ```
 
-## Installation
+## Setup
 
-Create and activate a virtual environment:
+### 1. Create and activate a virtual environment
 
 ```bash
-python3.12 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-Install dependencies:
+### 2. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Running Ollama
+## Run Ollama
 
 Make sure Ollama is installed and running locally.
 
-Pull the model if needed:
+If needed, pull the model:
 
 ```bash
 ollama pull qwen3
 ```
 
-If your local install exposes the model as `qwen3:8b`, the app already supports that fallback.
+The application also supports the fallback model `qwen3:8b`.
 
-## Running FastAPI
+## Run the Application
 
-Start the API server:
+Start the FastAPI server:
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-The server will usually run at `http://127.0.0.1:8000`.
-
-## Example API Calls
-
-### Health check
+Then test it with:
 
 ```bash
 curl http://127.0.0.1:8000/health
 ```
 
-Expected response:
-
-```json
-{
-	"status": "running"
-}
-```
-
-### Chat request
+and
 
 ```bash
 curl -X POST http://127.0.0.1:8000/chat \
-	-H "Content-Type: application/json" \
-	-d '{"message":"Hello"}'
+  -H "Content-Type: application/json" \
+  -d '{"message":"Hello"}'
 ```
 
-Example response:
+## API Behavior
+
+### Health endpoint
+
+`GET /health`
+
+Returns:
 
 ```json
-{
-	"response": "Hello! How can I help you today?"
-}
+{"status": "running"}
 ```
 
-## Common Errors
+### Chat endpoint
 
-- If `GET /health` fails, check that Uvicorn is running.
-- If `POST /chat` returns `503`, confirm that Ollama is running on port `11434`.
-- If the model name is not found, the app tries the configured fallback model `qwen3:8b`.
-- If validation fails, the API returns a friendly `422` response with readable error messages.
-- If Python packages are missing, run `pip install -r requirements.txt` again inside the virtual environment.
+`POST /chat`
 
-## How the Request Travels
+Accepts a JSON body like:
 
-When you call `POST /chat`, FastAPI first validates the JSON body using Pydantic.
-The route then asks the Prompt Builder to create the final Ollama message list.
-The Prompt Builder reads the current conversation history from the Conversation Manager and adds the newest user message.
-The Ollama Client sends the final payload to the local Ollama server and returns the assistant reply.
-The route stores the latest user and assistant messages back into the Conversation Manager so short chat history is preserved in memory.
+```json
+{"message": "Hello"}
+```
 
-## How Each Part Works
+Returns a response body like:
 
-### Configuration
+```json
+{"response": "..."}
+```
 
-`app/config.py` holds all configurable values in one place.
-That includes the Ollama URL, model name, system prompt, history size, timeout, log level, API title, API version, and log file settings.
+If Ollama is slow or unavailable, the app returns a fallback response instead of failing the request.
 
-### Prompt Builder
+## Module 2 Memory System
 
-`app/prompts.py` contains `PromptBuilder`.
-It builds the message list in the exact order Ollama expects:
+The project uses SQLite for persistent memory storage.
 
-1. system prompt
-2. previous conversation messages
-3. newest user message
+### What SQLite does here
 
-This keeps prompt logic out of the route layer.
+SQLite stores memory records in a local database file named `memory.db` in the project root. The database is created automatically when the application starts and the schema is initialized through the database module.
 
-### Conversation Manager
+### Why SQLite is used
 
-`app/conversation.py` contains `ConversationManager`.
-It stores messages only in memory and keeps only the latest configured number of messages.
-That prevents unlimited growth while still allowing short chat context.
+SQLite is a lightweight, file-based database that is simple to use for local development and testing. It does not require a separate server process.
 
-### Ollama Communication
+### How memories are stored
 
-`app/ollama_client.py` is the only file that talks to Ollama with `requests.post()`.
-It handles connection errors, timeouts, invalid JSON, empty responses, and model fallback behavior.
+Memories are stored in a table named `memories` with these columns:
 
-### Logging
+- `id`: primary key
+- `memory`: the stored text
+- `created_at`: timestamp for creation
+- `updated_at`: timestamp for the last update
 
-`app/logging_utils.py` configures built-in Python logging.
-Logs are written to the `logs/` folder and also shown in the console.
-The app logs startup, requests, user messages, AI responses, execution time, warnings, and errors.
+### How memories are retrieved
 
-### Error Handling
+The memory manager supports:
 
-`app/error_handlers.py` converts FastAPI and unexpected exceptions into user-friendly JSON responses.
-That keeps the API responses simple for beginners and easier to understand.
+- loading all memories
+- loading a limited number of most recent memories
+- searching by partial, case-insensitive text match
+- updating an existing memory record
+- deleting a memory record
+
+### Database file location
+
+The current database path is:
+
+```text
+memory.db
+```
+
+### Resetting memory
+
+To clear saved memories, remove the database file and restart the app:
+
+```bash
+rm memory.db
+```
+
+The app will recreate the database file on the next startup.
+
+## Logging
+
+The application uses Python’s built-in logging system. Logs are written to the `logs/` directory and also sent to the console.
+
+The logging setup covers startup, requests, warnings, errors, and response handling.
 
 ## Testing
 
-Run the tests with:
+Run the full test suite with:
 
 ```bash
 pytest
 ```
 
-The tests cover:
+The current test suite covers:
 
-- `GET /health`
-- `POST /chat` success
-- missing message field
-- empty message
-- Ollama unavailable
-- `ConversationManager`
-- `PromptBuilder`
+- health endpoint behavior
+- chat endpoint behavior
+- validation errors
+- Ollama timeout and connection fallback behavior
+- conversation history handling
+- prompt building
+- memory manager CRUD behavior
+- integration flow for memory persistence
 
-## Future Roadmap
+## Known Limitations
 
-Later modules can build on this foundation without major refactoring.
-Possible next steps are:
+- The memory system is currently simple and file-based; it does not expose dedicated REST endpoints for managing memories.
+- Memory saving is still controlled by the conversation-layer importance check, which is intentionally basic.
+- The chat flow depends on a working local Ollama installation for the best experience.
 
-1. long-term memory
-2. tool calling
-3. RAG
-4. security and attack detection
-5. multi-agent communication
-6. richer logging and analytics
+## Git Workflow
 
-## Git Commands
-
-Use these commands for this stage:
+Typical commands:
 
 ```bash
 git status
 git add .
-git commit -m "Complete Module 1 AI Agent foundation"
+git commit -m "Describe your changes"
+git push
+```
 git push
 ```

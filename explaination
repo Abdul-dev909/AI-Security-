@@ -1,302 +1,223 @@
-AI Agent Module 1 - Explanation
+AI Agent Project - Explanation
 
-This file explains what has been built so far in simple words.
-The goal is to help beginners understand how each file works and how the project pieces connect.
+This file explains the current project in simple terms. It covers the main application flow, the memory system, the testing setup, and the logging behavior.
 
 1. What this project is
 
-This project is a small AI agent backend built from scratch with Python, FastAPI, and a local Ollama model.
-We are not using LangChain, CrewAI, AutoGen, databases, RAG, tools, Docker, or a frontend.
-The idea is to learn the core building blocks first and keep the code easy to follow.
+This project is a small AI agent backend built with Python, FastAPI, and a local Ollama model. It now also includes a SQLite-backed memory system and a pytest test suite.
 
-2. Folder structure
+The goal is to keep the code simple, readable, and easy to extend while demonstrating how a basic AI assistant can store short-term memories and respond to user messages.
 
-The project now has these main parts:
+2. Current folder structure
+
+The repository now contains these main parts:
 
 - app/
 - logs/
 - tests/
 - requirements.txt
-- .gitignore
 - README.md
 - explaination
+- memory.db
 
-The app folder contains the Python code.
-The logs folder stores log files.
-The tests folder stores automated tests.
+The app folder contains the Python modules. The logs folder stores runtime logs. The tests folder stores automated tests.
 
 3. File-by-file explanation
 
 app/__init__.py
 
-This file tells Python that the app folder is a package.
-It does not contain logic.
-It exists so imports like `from app.routes import router` work cleanly.
+This file marks the app package so Python can import modules like `app.routes` and `app.memory_manager` cleanly.
 
 app/main.py
 
-This is the FastAPI entry point.
-It creates the FastAPI app, applies logging setup, registers error handlers, and includes the router.
+This is the FastAPI entry point. It creates the app, sets up logging, registers error handlers, and includes the routes.
 
-Why it exists:
-It keeps startup code in one small place.
-
-How it connects to the rest of the project:
-It creates shared app state objects like the Conversation Manager and Prompt Builder, which the routes use later.
+It also initializes shared app state such as the conversation manager and prompt builder.
 
 app/routes.py
 
 This file contains the API endpoints.
-It uses APIRouter so the route logic stays separate from app startup.
 
-It provides two endpoints:
+The current endpoints are:
 
 - GET /health
 - POST /chat
 
-Why it exists:
-It keeps the HTTP layer organized.
-
-How it connects to the rest of the project:
-It receives the request, asks the Prompt Builder to create messages, sends those messages to the Ollama Client, and returns the response.
-
-Simple flow inside /chat:
-
-1. The user sends a message.
-2. FastAPI validates the JSON using Pydantic.
-3. The route asks PromptBuilder to build the final Ollama message list.
-4. The route sends the messages to Ollama.
-5. The route stores the latest messages in ConversationManager.
-6. The route returns the assistant response.
+The chat route builds a prompt, sends it to the AI backend, and returns the response. If Ollama is slow or unavailable, the app returns a graceful fallback response.
 
 app/config.py
 
-This file stores all configurable values in one place.
-It includes the Ollama URL, model name, system prompt, maximum history size, request timeout, log level, API title, API version, and logging file settings.
+This file stores the main configuration values for the app.
 
-Why it exists:
-It prevents hard-coded values from being scattered across many files.
+It includes:
 
-How it connects to the rest of the project:
-The Prompt Builder, Conversation Manager, logging setup, and Ollama Client all read from this configuration.
+- Ollama URL
+- model name
+- fallback model name
+- system prompt
+- history limit
+- request timeout
+- log level
+- fallback response text
+- database path
 
 app/schemas.py
 
-This file defines the Pydantic models for request and response validation.
+This file defines the request and response models used by FastAPI.
 
-Models in this file:
+The most important ones are:
 
 - HealthResponse
 - ChatRequest
 - ChatResponse
-- ValidationErrorResponse
-
-Why it exists:
-It makes the API input and output shapes explicit.
-
-How it connects to the rest of the project:
-FastAPI uses these models to validate incoming requests and to document the API responses.
-
-ChatRequest expects:
-
-```json
-{
-  "message": "Hello"
-}
-```
-
-ChatResponse returns:
-
-```json
-{
-  "response": "..."
-}
-```
 
 app/prompts.py
 
-This file contains `PromptBuilder`.
-It builds the list of messages that Ollama expects.
+This file contains the prompt builder logic. It structures the final message list that gets sent to the AI model.
 
-Why it exists:
-Prompt logic should not live inside the route function.
-
-How it connects to the rest of the project:
-It reads the previous conversation messages from `ConversationManager`, adds the system prompt, and appends the newest user message.
-
-Returned message order:
-
-```python
-[
-    {"role": "system", "content": "You are a helpful AI assistant."},
-    ...previous_messages,
-    {"role": "user", "content": "New message"},
-]
-```
+It includes the system prompt, conversation history, and the latest user message.
 
 app/conversation.py
 
-This file contains `ConversationManager`.
-It stores chat history in memory and keeps only the newest configured number of messages.
+This file contains the ConversationManager.
 
-Why it exists:
-The project needs short conversation history, but not permanent storage.
+It stores recent chat messages and keeps only the newest messages according to the configured history limit. It also interacts with the memory manager for basic memory-related behavior.
 
-How it connects to the rest of the project:
-The Prompt Builder reads from it, and the chat route writes the latest user and assistant messages back into it.
+app/database.py
 
-Important methods:
+This file manages the SQLite database connection and creates the `memories` table if it does not exist.
 
-- `add_user_message()` stores a user message.
-- `add_assistant_message()` stores an assistant message.
-- `clear_history()` removes all stored messages.
-- `get_messages()` returns the stored messages in order.
+The database file is stored at the project root as `memory.db`.
+
+app/memory_manager.py
+
+This file contains the MemoryManager class.
+
+It provides the following operations:
+
+- save_memory()
+- list_memories()
+- load_memories()
+- search_memories()
+- update_memory()
+- delete_memory()
+
+These methods work directly with the SQLite database and return dictionary-style rows for the stored memory records.
 
 app/ollama_client.py
 
-This file is the only place that talks to Ollama over HTTP.
-It uses `requests.post()` to send the prompt to the local server.
+This file is the only place that communicates with the local Ollama server.
 
-It sends requests to:
+It sends requests to the Ollama chat API and handles:
 
-```text
-http://localhost:11434/api/chat
-```
-
-Why it exists:
-Keeping Ollama communication in one file makes the rest of the application easier to understand.
-
-How it connects to the rest of the project:
-The route sends a prepared message list here, and this file returns the assistant text.
-
-What it does:
-
-1. Builds the API URL.
-2. Sends the model name and messages.
-3. Handles timeouts.
-4. Handles connection failures.
-5. Handles invalid JSON.
-6. Handles empty responses.
-7. Tries a fallback model when the primary model name is not found.
+- connection errors
+- timeouts
+- invalid JSON
+- empty responses
+- fallback model selection
 
 app/logging_utils.py
 
-This file sets up logging.
-It uses Python's built-in logging tools and writes logs to the logs folder.
+This file sets up application logging.
 
-Why it exists:
-Logging helps us see what the app is doing and helps us debug problems.
-
-How it connects to the rest of the project:
-The app logs startup, requests, user messages, AI responses, warnings, and errors.
+It configures both console logging and file logging under the `logs/` directory.
 
 app/error_handlers.py
 
-This file makes FastAPI errors friendlier.
-It converts validation errors, HTTP errors, and unexpected errors into clear JSON responses.
-
-Why it exists:
-Beginners should see understandable error messages instead of confusing server traces.
-
-How it connects to the rest of the project:
-The handlers are registered during app startup and apply to the whole API.
+This file adds friendly exception handling for FastAPI requests so validation and runtime errors are easier to understand.
 
 app/utils.py
 
-This file contains reusable helper functions.
-It includes timestamp generation, execution timing, safe JSON formatting, and text cleanup.
-
-Why it exists:
-Small helpers should live in one place instead of being duplicated.
-
-How it connects to the rest of the project:
-The middleware uses the execution timer, the route uses text cleanup, and logging uses safe JSON formatting.
+This file contains helper functions used across the project such as execution timing, text normalization, and safe formatting utilities.
 
 requirements.txt
 
-This file lists the packages needed to run the project.
-It includes FastAPI, Uvicorn, Requests, Pytest, and HTTPX.
-
-Why it exists:
-It makes installation simple and repeatable.
-
-How it connects to the rest of the project:
-Running `pip install -r requirements.txt` installs everything needed for the API and tests.
-
-.gitignore
-
-This file tells Git what to ignore.
-It skips virtual environments, cache files, log files, and other local-only files.
-
-Why it exists:
-It keeps the repository clean.
-
-How it connects to the rest of the project:
-It prevents generated files from being committed accidentally.
+This file lists the Python dependencies required to run the app and the tests.
 
 README.md
 
-This is the beginner guide for the project.
-It explains the architecture, installation, request flow, logging, testing, and future roadmap.
+This file documents the project setup, usage, architecture, memory system, testing workflow, and known limitations.
 
-Why it exists:
-It shows a new learner how to run and understand the project.
+explaination
 
-How it connects to the rest of the project:
-It matches the current code and teaches the same structure you see in the source files.
+This file explains the project in beginner-friendly language.
 
-logs/.gitkeep
+memory.db
 
-This file keeps the logs folder in Git even when it is empty.
+This is the SQLite database file used by the memory system.
 
-Why it exists:
-Git does not track empty folders.
+logs/
 
-How it connects to the rest of the project:
-It ensures the logs folder is present in the repository.
+This directory stores log output generated by the application.
 
-tests/.gitkeep
+tests/
 
-This file keeps the tests folder in Git even when it is empty.
+This directory contains pytest tests for the application.
 
-Why it exists:
-The folder needs to exist now so we can add tests easily.
+4. Memory system overview
 
-How it connects to the rest of the project:
-It is replaced by real test files in this module.
+The application now uses SQLite for persistent memories.
 
-tests/test_module1.py
+The database file is:
 
-This file contains the automated tests for Module 1.
+```text
+memory.db
+```
 
-Why it exists:
-Tests help us check that the API and helper classes behave as expected.
+The table is named `memories` and contains:
 
-How it connects to the rest of the project:
-It verifies the health endpoint, chat endpoint, validation, Ollama error handling, ConversationManager, and PromptBuilder.
+- `id`
+- `memory`
+- `created_at`
+- `updated_at`
 
-4. API configuration explained simply
+The MemoryManager supports saving, loading, searching, updating, and deleting memory records.
 
-The app runs with a local Ollama server.
-The server address is `http://localhost:11434`.
-The main model name is `qwen3`, and the app can fall back to `qwen3:8b` if needed.
+5. Request flow
 
-The request flow is:
+When a user sends a message to the app:
 
 1. FastAPI receives the request.
-2. Pydantic validates the request body.
-3. PromptBuilder creates the final message list.
-4. ConversationManager provides short chat history.
-5. OllamaClient sends the messages to the local server.
-6. The route returns the AI response.
+2. The route validates the input.
+3. The conversation manager prepares the context.
+4. The prompt builder builds the message list.
+5. The Ollama client sends the request to the local model.
+6. The app returns a response.
+7. The app may also save or search memory depending on the workflow.
 
-5. Why the project is arranged this way
+6. Logging behavior
 
-Each file has one clear job.
-That makes the code easier to read, easier to test, and easier to extend later.
-This is especially helpful for beginners because each concept stays separated instead of being mixed together.
+The app writes logs to the console and to the `logs/` directory. Logs help track startup events, requests, warnings, errors, and fallback responses.
 
-6. What we learned from this step
+7. Testing
+
+The project uses pytest.
+
+The test suite covers:
+
+- health checks
+- chat flow
+- validation behavior
+- memory manager CRUD behavior
+- persistence-related integration scenarios
+- timeout and service-unavailable fallback behavior
+
+8. Known limitations
+
+- The memory system is simple and local-only.
+- It does not expose dedicated REST endpoints for memory management.
+- Memory saving is still controlled by the current conversation-layer logic.
+- The best experience still depends on a working local Ollama installation.
+
+9. What has been updated
+
+The project now includes:
+
+- a documented memory system
+- SQLite persistence
+- pytest-based testing for memory and integration flows
+- graceful fallback behavior for AI service failures
+- improved README and explanation documentation
 
 - FastAPI is good for clean API structure.
 - APIRouter keeps routes organized.
