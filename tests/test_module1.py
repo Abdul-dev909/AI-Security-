@@ -7,10 +7,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from app.config import settings
 from app.conversation import ConversationManager
 from app.memory_manager import MemoryManager
 import app.database as database
-from app.ollama_client import OllamaConnectionError
+from app.ollama_client import OllamaConnectionError, OllamaTimeoutError
 from app.prompts import PromptBuilder
 from app.main import app
 import app.routes as routes
@@ -85,7 +86,7 @@ def test_chat_empty_message(client: TestClient) -> None:
 
 
 def test_chat_ollama_unavailable(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    """When Ollama is unavailable, the API should return a friendly error."""
+    """When Ollama is unavailable, the API should return a graceful fallback response."""
 
     def raise_connection_error(messages: list[dict[str, str]]) -> str:
         raise OllamaConnectionError("Could not connect to the local Ollama server.")
@@ -94,8 +95,22 @@ def test_chat_ollama_unavailable(client: TestClient, monkeypatch: pytest.MonkeyP
 
     response = client.post("/chat", json={"message": "Hello"})
 
-    assert response.status_code == 503
-    assert response.json()["detail"] == "Could not connect to the local Ollama server."
+    assert response.status_code == 200
+    assert response.json() == {"response": settings.FALLBACK_RESPONSE}
+
+
+def test_chat_ollama_timeout_returns_fallback_message(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """When Ollama times out, the API should return a graceful fallback response."""
+
+    def raise_timeout_error(messages: list[dict[str, str]]) -> str:
+        raise OllamaTimeoutError("The Ollama request timed out.")
+
+    monkeypatch.setattr(routes, "generate_chat_response", raise_timeout_error)
+
+    response = client.post("/chat", json={"message": "Hello"})
+
+    assert response.status_code == 200
+    assert response.json() == {"response": settings.FALLBACK_RESPONSE}
 
 
 def test_conversation_manager_keeps_latest_messages(memory_manager: MemoryManager) -> None:
