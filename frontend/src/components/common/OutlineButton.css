@@ -1,0 +1,65 @@
+.outline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-wide);
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform var(--transition-fast),
+    border-color var(--transition-normal),
+    background var(--transition-normal),
+    box-shadow var(--transition-normal),
+    color var(--transition-fast);
+}
+
+/* ── Default Variant ── */
+.outline-btn--default {
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.outline-btn--default:hover:not(:disabled) {
+  border-color: var(--color-accent-primary);
+  color: var(--color-accent-primary);
+  background: rgba(var(--color-accent-primary-rgb), 0.06);
+  box-shadow: 0 0 12px rgba(var(--color-accent-primary-rgb), 0.1);
+}
+
+/* ── Danger Variant ── */
+.outline-btn--danger {
+  border: 1px solid rgba(var(--color-danger-rgb), 0.3);
+  color: var(--color-danger);
+}
+
+.outline-btn--danger:hover:not(:disabled) {
+  border-color: var(--color-danger);
+  background: rgba(var(--color-danger-rgb), 0.08);
+  box-shadow: var(--glow-danger);
+}
+
+/* ── Disabled ── */
+.outline-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Sizes ── */
+.outline-btn--sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.outline-btn--md {
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-sm);
+}
+
+.outline-btn--lg {
+  padding: var(--space-3) var(--space-8);
+  font-size: var(--font-size-base);
+}

@@ -1,0 +1,4 @@
+/* Evidence page uses shared component styles — minimal page-specific overrides */
+.evidence {
+  animation: fadeIn 0.4s ease both;
+}
