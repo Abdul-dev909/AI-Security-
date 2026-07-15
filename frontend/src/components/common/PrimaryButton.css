@@ -1,0 +1,50 @@
+.primary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, var(--color-accent-primary), rgba(var(--color-accent-secondary-rgb), 0.8));
+  color: var(--color-bg-primary);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform var(--transition-fast),
+    box-shadow var(--transition-normal),
+    opacity var(--transition-fast);
+}
+
+.primary-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--glow-primary-strong);
+}
+
+.primary-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.primary-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  background: var(--color-text-muted);
+  color: var(--color-bg-secondary);
+}
+
+/* ── Sizes ── */
+.primary-btn--sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-xs);
+}
+
+.primary-btn--md {
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-sm);
+}
+
+.primary-btn--lg {
+  padding: var(--space-3) var(--space-8);
+  font-size: var(--font-size-base);
+}
