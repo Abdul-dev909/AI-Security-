@@ -1,13 +1,18 @@
-import { useState, useRef, useEffect } from 'react'
-import { sendChat } from '../services/apiService.js'
+import React, { useState, useRef, useEffect } from 'react'
+import { sendChat } from '../services/apiService'
+
+interface ChatMessage {
+  sender: 'user' | 'ai';
+  text: string;
+}
 
 function Chat() {
-  const [messages, setMessages] = useState([])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const chatEndRef = useRef(null)
+  const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -44,7 +49,7 @@ function Chat() {
     }
   }, [])
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const trimmedInput = input.trim()
@@ -146,7 +151,7 @@ function Chat() {
   )
 }
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties } = {
   container: {
     display: 'flex',
     flexDirection: 'column',

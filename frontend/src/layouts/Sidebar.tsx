@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
+  MessageSquare,
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -20,6 +21,7 @@ const navItems = [
   { path: '/evidence', label: 'Evidence', icon: FileSearch },
   { path: '/forensics', label: 'Forensics', icon: Microscope },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { path: '/chat', label: 'AI Chat', icon: MessageSquare },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 

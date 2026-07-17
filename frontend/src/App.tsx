@@ -7,6 +7,7 @@ import { Evidence } from './pages/Evidence/Evidence';
 import { Forensics } from './pages/Forensics/Forensics';
 import { Analytics } from './pages/Analytics/Analytics';
 import { Settings } from './pages/Settings/Settings';
+import Chat from './pages/Chat';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
           <Route path="/forensics" element={<Forensics />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/chat" element={<Chat />} />
         </Route>
       </Routes>
     </BrowserRouter>

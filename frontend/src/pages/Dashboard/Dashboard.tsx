@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import * as LucideIcons from 'lucide-react';
 import { PageHeader } from '../../components/common/PageHeader';
@@ -6,10 +7,49 @@ import { SectionCard } from '../../components/common/SectionCard';
 import { InfoRow } from '../../components/common/InfoRow';
 import { OutlineButton } from '../../components/common/OutlineButton';
 import { dashboardStats, recentActivity, systemOverview, quickActions } from '../../mock/mockDashboard';
+import { checkHealth } from '../../services/apiService';
+import type { DashboardStat } from '../../types';
 import './Dashboard.css';
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const [stats, setStats] = useState<DashboardStat[]>(dashboardStats);
+
+  useEffect(() => {
+    let isMounted = true;
+    const verifyHealth = async () => {
+      let isOnline = false;
+      try {
+        const data = await checkHealth();
+        if (data && data.status === 'running') {
+          isOnline = true;
+        }
+      } catch (error) {
+        isOnline = false;
+      } finally {
+        if (isMounted) {
+          setStats((currentStats) =>
+            currentStats.map((stat) => {
+              if (stat.id === 'backend-status') {
+                return {
+                  ...stat,
+                  value: isOnline ? 'Connected' : 'Disconnected',
+                  status: isOnline ? 'online' : 'offline',
+                  statusLabel: isOnline ? 'Online' : 'Offline',
+                };
+              }
+              return stat;
+            })
+          );
+        }
+      }
+    };
+
+    verifyHealth();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="dashboard">
@@ -20,7 +60,7 @@ export function Dashboard() {
 
       {/* Status Cards Grid */}
       <section className="dashboard__stats" aria-label="System status cards">
-        {dashboardStats.map((stat, i) => (
+        {stats.map((stat, i) => (
           <StatCard
             key={stat.id}
             icon={stat.icon}

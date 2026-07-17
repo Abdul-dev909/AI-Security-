@@ -19,7 +19,7 @@ export async function checkHealth() {
  * @param {string} message - The message text.
  * @returns {Promise<any>} The response data containing the assistant's reply.
  */
-export async function sendChat(message) {
+export async function sendChat(message: string) {
   try {
     const response = await api.post('/chat', { message })
     return response.data
