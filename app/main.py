@@ -7,6 +7,7 @@ import logging
 from collections.abc import AsyncIterator
 
 from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.conversation import ConversationManager
@@ -49,6 +50,14 @@ app = FastAPI(
 	version=settings.API_VERSION,
 	description=settings.API_DESCRIPTION,
 	lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
