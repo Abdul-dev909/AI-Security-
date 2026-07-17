@@ -1,0 +1,29 @@
+.analytics__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.analytics__charts-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+  margin-top: var(--space-6);
+}
+
+@media (max-width: 768px) {
+  .analytics__metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .analytics__charts-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .analytics__metrics {
+    grid-template-columns: 1fr;
+  }
+}

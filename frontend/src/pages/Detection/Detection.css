@@ -1,0 +1,12 @@
+.detection__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+@media (max-width: 640px) {
+  .detection__metrics {
+    grid-template-columns: 1fr;
+  }
+}
