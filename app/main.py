@@ -43,6 +43,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.prompt_builder = prompt_builder
 
     registry = DetectorRegistry()
+    from app.detection.detectors import (
+        CanaryDetector,
+        JailbreakDetector,
+        PromptLeakageDetector,
+    )
+
+    registry.register(CanaryDetector())
+    registry.register(PromptLeakageDetector())
+    registry.register(JailbreakDetector())
+
     coordinator = DetectionCoordinator(registry=registry)
     app.state.detection_coordinator = coordinator
 
