@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
 import logging
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.conversation import ConversationManager
+from app.detection import DetectionCoordinator, DetectorRegistry
 from app.error_handlers import register_error_handlers
 from app.logging_utils import setup_logging
 from app.memory_manager import MemoryManager
@@ -25,31 +26,36 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-	"""Create shared services before the app starts serving requests."""
+    """Create shared services before the app starts serving requests."""
 
-	memory_manager = MemoryManager()
-	conversation_manager = ConversationManager(
-		memory_manager=memory_manager,
-		max_history=settings.MAX_HISTORY,
-	)
-	prompt_builder = PromptBuilder(
-		system_prompt=settings.SYSTEM_PROMPT,
-		conversation_manager=conversation_manager,
-	)
+    memory_manager = MemoryManager()
+    conversation_manager = ConversationManager(
+        memory_manager=memory_manager,
+        max_history=settings.MAX_HISTORY,
+    )
+    prompt_builder = PromptBuilder(
+        system_prompt=settings.SYSTEM_PROMPT,
+        conversation_manager=conversation_manager,
+    )
 
-	app.state.memory_manager = memory_manager
-	app.state.conversation_manager = conversation_manager
-	app.state.prompt_builder = prompt_builder
-	logger.info("Application startup complete.")
-	yield
-	logger.info("Application shutdown complete.")
+    app.state.memory_manager = memory_manager
+    app.state.conversation_manager = conversation_manager
+    app.state.prompt_builder = prompt_builder
+
+    registry = DetectorRegistry()
+    coordinator = DetectionCoordinator(registry=registry)
+    app.state.detection_coordinator = coordinator
+
+    logger.info("Application startup complete.")
+    yield
+    logger.info("Application shutdown complete.")
 
 
 app = FastAPI(
-	title=settings.API_TITLE,
-	version=settings.API_VERSION,
-	description=settings.API_DESCRIPTION,
-	lifespan=lifespan,
+    title=settings.API_TITLE,
+    version=settings.API_VERSION,
+    description=settings.API_DESCRIPTION,
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -63,39 +69,39 @@ app.add_middleware(
 
 @app.middleware("http")
 async def request_logging_middleware(request: Request, call_next) -> Response:
-	"""Log incoming requests and how long they take to complete."""
+    """Log incoming requests and how long they take to complete."""
 
-	logger.info("Incoming request: %s %s", request.method, request.url.path)
-	with execution_timer() as elapsed_seconds:
-		response = await call_next(request)
+    logger.info("Incoming request: %s %s", request.method, request.url.path)
+    with execution_timer() as elapsed_seconds:
+        response = await call_next(request)
 
-	duration = elapsed_seconds()
-	if response.status_code >= 500:
-		logger.error(
-			"Request failed: %s %s -> %s in %.3fs",
-			request.method,
-			request.url.path,
-			response.status_code,
-			duration,
-		)
-	elif response.status_code >= 400:
-		logger.warning(
-			"Request returned a client error: %s %s -> %s in %.3fs",
-			request.method,
-			request.url.path,
-			response.status_code,
-			duration,
-		)
-	else:
-		logger.info(
-			"Request completed: %s %s -> %s in %.3fs",
-			request.method,
-			request.url.path,
-			response.status_code,
-			duration,
-		)
+    duration = elapsed_seconds()
+    if response.status_code >= 500:
+        logger.error(
+            "Request failed: %s %s -> %s in %.3fs",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration,
+        )
+    elif response.status_code >= 400:
+        logger.warning(
+            "Request returned a client error: %s %s -> %s in %.3fs",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration,
+        )
+    else:
+        logger.info(
+            "Request completed: %s %s -> %s in %.3fs",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration,
+        )
 
-	return response
+    return response
 
 
 register_error_handlers(app)

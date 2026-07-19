@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Body, Depends, Request, status
 
 from app.config import settings
 from app.conversation import ConversationManager
+from app.detection import DetectionCoordinator
+from app.detection.models import DetectionContext
 from app.ollama_client import (
     OllamaClientError,
     OllamaConnectionError,
@@ -36,6 +38,12 @@ def get_prompt_builder(request: Request) -> PromptBuilder:
     """Return the shared prompt builder stored on the FastAPI app."""
 
     return request.app.state.prompt_builder
+
+
+def get_detection_coordinator(request: Request) -> DetectionCoordinator:
+    """Return the shared detection coordinator stored on the FastAPI app."""
+
+    return request.app.state.detection_coordinator
 
 
 @router.get(
@@ -107,6 +115,7 @@ def chat(
     ),
     prompt_builder: PromptBuilder = Depends(get_prompt_builder),
     conversation_manager: ConversationManager = Depends(get_conversation_manager),
+    detection_coordinator: DetectionCoordinator = Depends(get_detection_coordinator),
 ) -> ChatResponse:
     """Send a user message to Ollama and return the assistant response."""
 
@@ -115,8 +124,15 @@ def chat(
 
     try:
         response_text = generate_chat_response(messages)
-    except (OllamaTimeoutError, OllamaConnectionError, OllamaResponseError, OllamaClientError) as exc:
-        logger.warning("Falling back to a graceful response because Ollama failed: %s", exc)
+    except (
+        OllamaTimeoutError,
+        OllamaConnectionError,
+        OllamaResponseError,
+        OllamaClientError,
+    ) as exc:
+        logger.warning(
+            "Falling back to a graceful response because Ollama failed: %s", exc
+        )
         response_text = settings.FALLBACK_RESPONSE
 
     conversation_manager.add_user_message(request.message)
@@ -124,4 +140,15 @@ def chat(
     conversation_manager.save_memory_if_important(request.message)
     logger.info("Assistant response sent: %s", response_text)
 
-    return ChatResponse(response=response_text)
+    context = DetectionContext(
+        user_prompt=request.message,
+        ai_response=response_text,
+        conversation_history=conversation_manager.get_messages(),
+    )
+    report = detection_coordinator.run_detection(context)
+
+    return ChatResponse(
+        response=response_text,
+        history=conversation_manager.get_messages(),
+        detection=report,
+    )

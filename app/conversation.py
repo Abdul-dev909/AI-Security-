@@ -120,7 +120,7 @@ class ConversationManager:
         """Keep only the newest messages allowed by the configured limit."""
 
         if len(self._messages) > self.max_history:
-            del self._messages[:-self.max_history]
+            del self._messages[: -self.max_history]
 
     def _normalize_memories(self, memories: Any) -> list[str]:
         """Convert memory results into a short list of displayable strings."""
@@ -139,7 +139,12 @@ class ConversationManager:
         normalized_memories: list[str] = []
         for item in raw_memories[: settings.MEMORY_LIMIT]:
             if isinstance(item, dict):
-                text = str(item.get("content") or item.get("text") or item.get("memory") or item)
+                text = str(
+                    item.get("content")
+                    or item.get("text")
+                    or item.get("memory")
+                    or item
+                )
             else:
                 text = str(item)
 
@@ -148,4 +153,3 @@ class ConversationManager:
                 normalized_memories.append(cleaned_text)
 
         return normalized_memories
-

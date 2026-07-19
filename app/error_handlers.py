@@ -47,7 +47,9 @@ def register_error_handlers(app: FastAPI) -> None:
         return JSONResponse(status_code=422, content=response_body.model_dump())
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    async def http_exception_handler(
+        request: Request, exc: HTTPException
+    ) -> JSONResponse:
         """Return FastAPI HTTP errors while logging them with the right level."""
 
         log_level = logging.ERROR if exc.status_code >= 500 else logging.WARNING

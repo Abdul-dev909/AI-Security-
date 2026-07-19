@@ -72,15 +72,15 @@ def populate_registry(
 
 
 __all__ = [
-    "BaseAttack",
-    "PROMPT_INJECTION",
-    "JAILBREAK",
-    "SYSTEM_PROMPT_EXTRACTION",
-    "CANARY_EXTRACTION",
-    "MEMORY_OVERWRITE",
-    "MEMORY_DISCLOSURE",
-    "MEMORY_POISONING",
-    "MEMORY_ATTACKS",
     "ALL_ATTACKS",
+    "CANARY_EXTRACTION",
+    "JAILBREAK",
+    "MEMORY_ATTACKS",
+    "MEMORY_DISCLOSURE",
+    "MEMORY_OVERWRITE",
+    "MEMORY_POISONING",
+    "PROMPT_INJECTION",
+    "SYSTEM_PROMPT_EXTRACTION",
+    "BaseAttack",
     "populate_registry",
 ]

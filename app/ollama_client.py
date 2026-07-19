@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import logging
+from typing import Any
 
 import requests
 from requests import ConnectionError as RequestsConnectionError
@@ -61,14 +60,18 @@ def generate_chat_response(messages: list[dict[str, Any]]) -> str:
         payload["model"] = model_name
 
         try:
-            response = requests.post(url, json=payload, timeout=settings.REQUEST_TIMEOUT)
+            response = requests.post(
+                url, json=payload, timeout=settings.REQUEST_TIMEOUT
+            )
             response.raise_for_status()
         except Timeout as exc:
             logger.exception("Ollama request timed out.")
             raise OllamaTimeoutError("The Ollama request timed out.") from exc
         except RequestsConnectionError as exc:
             logger.exception("Could not connect to Ollama.")
-            raise OllamaConnectionError("Could not connect to the local Ollama server.") from exc
+            raise OllamaConnectionError(
+                "Could not connect to the local Ollama server."
+            ) from exc
         except HTTPError as exc:
             response = exc.response
             error_message = ""
@@ -96,7 +99,9 @@ def generate_chat_response(messages: list[dict[str, Any]]) -> str:
             ) from exc
         except requests.RequestException as exc:
             logger.exception("Unexpected request failure while talking to Ollama.")
-            raise OllamaConnectionError("An error occurred while contacting Ollama.") from exc
+            raise OllamaConnectionError(
+                "An error occurred while contacting Ollama."
+            ) from exc
 
         try:
             response_data = response.json()

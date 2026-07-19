@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.detection.models import DetectionReport
 from app.utils import normalize_text
 
 
@@ -42,9 +43,28 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     """Outgoing response body for chat completions."""
 
-    model_config = ConfigDict(json_schema_extra={"example": {"response": "Hello!"}})
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "response": "Hello!",
+                "history": [{"role": "assistant", "content": "Hello!"}],
+                "detection": {
+                    "total_detectors_executed": 0,
+                    "total_detections": 0,
+                    "highest_severity": None,
+                    "results": [],
+                },
+            }
+        }
+    )
 
     response: str = Field(description="Assistant reply returned by Ollama.")
+    history: list[dict[str, str]] = Field(
+        default_factory=list, description="Recent conversation history."
+    )
+    detection: DetectionReport | None = Field(
+        default=None, description="Security detection results."
+    )
 
 
 class ValidationErrorResponse(BaseModel):
@@ -64,4 +84,3 @@ class ValidationErrorResponse(BaseModel):
         default_factory=list,
         description="Specific validation issues found in the request.",
     )
-
