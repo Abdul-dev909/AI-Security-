@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Any, Callable, Iterator
+from typing import Any
 
 
 def current_timestamp() -> str:
@@ -46,4 +47,3 @@ def is_blank_text(value: str) -> bool:
     """Return True when a string only contains whitespace."""
 
     return normalize_text(value) == ""
-

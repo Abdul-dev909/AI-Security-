@@ -72,7 +72,7 @@ class AttackExecutor:
                 execution_success = True
             except Exception as exc:
                 logger.exception("Error executing attack '%s'", attack.id)
-                error_msg = f"{type(exc).__name__}: {str(exc)}"
+                error_msg = f"{type(exc).__name__}: {exc!s}"
                 execution_success = False
 
         return AttackResult(

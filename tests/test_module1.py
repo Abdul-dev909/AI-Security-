@@ -7,14 +7,14 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+import app.database as database
+import app.routes as routes
 from app.config import settings
 from app.conversation import ConversationManager
+from app.main import app
 from app.memory_manager import MemoryManager
-import app.database as database
 from app.ollama_client import OllamaConnectionError, OllamaTimeoutError
 from app.prompts import PromptBuilder
-from app.main import app
-import app.routes as routes
 
 
 @pytest.fixture()
@@ -51,12 +51,19 @@ def test_health_endpoint(client: TestClient) -> None:
 def test_chat_success(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     """The chat endpoint should return the model response and store history."""
 
-    monkeypatch.setattr(routes, "generate_chat_response", lambda messages: "Hello! How can I help you today?")
+    monkeypatch.setattr(
+        routes,
+        "generate_chat_response",
+        lambda messages: "Hello! How can I help you today?",
+    )
 
     response = client.post("/chat", json={"message": "Hello"})
 
     assert response.status_code == 200
-    assert response.json() == {"response": "Hello! How can I help you today?"}
+    body = response.json()
+    assert body["response"] == "Hello! How can I help you today?"
+    assert "detection" in body
+    assert "history" in body
     assert client.app.state.conversation_manager.get_messages() == [
         {"role": "user", "content": "Hello"},
         {"role": "assistant", "content": "Hello! How can I help you today?"},
@@ -85,7 +92,9 @@ def test_chat_empty_message(client: TestClient) -> None:
     assert any("message" in error for error in body["errors"])
 
 
-def test_chat_ollama_unavailable(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_chat_ollama_unavailable(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """When Ollama is unavailable, the API should return a graceful fallback response."""
 
     def raise_connection_error(messages: list[dict[str, str]]) -> str:
@@ -96,10 +105,14 @@ def test_chat_ollama_unavailable(client: TestClient, monkeypatch: pytest.MonkeyP
     response = client.post("/chat", json={"message": "Hello"})
 
     assert response.status_code == 200
-    assert response.json() == {"response": settings.FALLBACK_RESPONSE}
+    body = response.json()
+    assert body["response"] == settings.FALLBACK_RESPONSE
+    assert "detection" in body
 
 
-def test_chat_ollama_timeout_returns_fallback_message(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_chat_ollama_timeout_returns_fallback_message(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """When Ollama times out, the API should return a graceful fallback response."""
 
     def raise_timeout_error(messages: list[dict[str, str]]) -> str:
@@ -110,10 +123,14 @@ def test_chat_ollama_timeout_returns_fallback_message(client: TestClient, monkey
     response = client.post("/chat", json={"message": "Hello"})
 
     assert response.status_code == 200
-    assert response.json() == {"response": settings.FALLBACK_RESPONSE}
+    body = response.json()
+    assert body["response"] == settings.FALLBACK_RESPONSE
+    assert "detection" in body
 
 
-def test_conversation_manager_keeps_latest_messages(memory_manager: MemoryManager) -> None:
+def test_conversation_manager_keeps_latest_messages(
+    memory_manager: MemoryManager,
+) -> None:
     """ConversationManager should store only the newest messages."""
 
     manager = ConversationManager(memory_manager=memory_manager, max_history=3)
@@ -141,14 +158,18 @@ def test_conversation_manager_clear_history(memory_manager: MemoryManager) -> No
     assert manager.get_messages() == []
 
 
-def test_prompt_builder_uses_system_prompt_and_history(memory_manager: MemoryManager) -> None:
+def test_prompt_builder_uses_system_prompt_and_history(
+    memory_manager: MemoryManager,
+) -> None:
     """PromptBuilder should combine the system prompt, history, and new message."""
 
     manager = ConversationManager(memory_manager=memory_manager, max_history=5)
     manager.add_user_message("Earlier question")
     manager.add_assistant_message("Earlier answer")
 
-    builder = PromptBuilder(system_prompt="You are a helpful AI assistant.", conversation_manager=manager)
+    builder = PromptBuilder(
+        system_prompt="You are a helpful AI assistant.", conversation_manager=manager
+    )
     messages = builder.build_messages("New question")
 
     assert messages == [

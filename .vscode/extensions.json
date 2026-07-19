@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "charliermarsh.ruff",
+    "ms-python.black-formatter",
+    "github.copilot",
+    "eamodio.gitlens",
+    "yzhang.markdown-all-in-one",
+    "ms-azuretools.vscode-docker",
+    "redhat.vscode-yaml"
+  ]
+}

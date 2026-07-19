@@ -36,11 +36,15 @@ class AttackEngine:
 
         for attack in registry.list():
             if not attack.enabled:
-                logger.info("Skipping disabled attack: %s (ID: %s)", attack.name, attack.id)
+                logger.info(
+                    "Skipping disabled attack: %s (ID: %s)", attack.name, attack.id
+                )
                 continue
 
             result = self.executor.execute(attack)
             results.append(result)
 
-        logger.info("Attack engine execution run completed. Executed %d attacks.", len(results))
+        logger.info(
+            "Attack engine execution run completed. Executed %d attacks.", len(results)
+        )
         return results

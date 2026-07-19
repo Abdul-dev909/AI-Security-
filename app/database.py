@@ -6,7 +6,7 @@ stored in the project root directory and is automatically created on import.
 
 Typical usage example:
     from app.database import get_connection, initialize_database
-    
+
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM memories")
@@ -16,8 +16,6 @@ Typical usage example:
 
 import sqlite3
 from pathlib import Path
-from typing import Generator
-
 
 # Database path in project root (one level above app folder)
 DB_PATH = Path(__file__).parent.parent / "memory.db"

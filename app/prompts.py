@@ -50,7 +50,9 @@ class PromptBuilder:
         ]
 
         if memories:
-            final_messages.append({"role": "system", "content": _format_memories(memories)})
+            final_messages.append(
+                {"role": "system", "content": _format_memories(memories)}
+            )
 
         if active_history:
             final_messages.extend(active_history)

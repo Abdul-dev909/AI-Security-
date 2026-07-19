@@ -12,7 +12,6 @@ from typing import Literal
 
 from app.attack_engine.models import Attack
 
-
 # Allowed difficulty levels for type safety.
 Difficulty = Literal["Easy", "Medium", "Hard"]
 
@@ -81,7 +80,7 @@ class BaseAttack:
 
     def register_all(
         self,
-        registry: "AttackRegistry",  # noqa: F821 — forward ref
+        registry: AttackRegistry,  # noqa: F821 — forward ref
         *,
         severity: str | None = None,
     ) -> list[Attack]:

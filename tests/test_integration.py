@@ -26,14 +26,20 @@ class TestMemoryIntegrationWorkflow:
             captured_messages.append(messages)
             return "I remember that."
 
-        monkeypatch.setattr(routes, "generate_chat_response", fake_generate_chat_response)
+        monkeypatch.setattr(
+            routes, "generate_chat_response", fake_generate_chat_response
+        )
         monkeypatch.setattr(conversation_module, "is_important", lambda text: True)
 
-        first_response = client.post("/chat", json={"message": "My favorite color is blue"})
+        first_response = client.post(
+            "/chat", json={"message": "My favorite color is blue"}
+        )
 
         assert first_response.status_code == 200
         stored_memories = client.app.state.memory_manager.load_memories()
-        assert [row["memory"] for row in stored_memories] == ["My favorite color is blue"]
+        assert [row["memory"] for row in stored_memories] == [
+            "My favorite color is blue"
+        ]
 
         restarted_manager = MemoryManager()
         client.app.state.memory_manager = restarted_manager
@@ -43,7 +49,11 @@ class TestMemoryIntegrationWorkflow:
 
         assert second_response.status_code == 200
         assert captured_messages[-1][-1]["content"] == "favorite color"
-        assert any("My favorite color is blue" in message["content"] for message in captured_messages[-1] if message["role"] == "system")
+        assert any(
+            "My favorite color is blue" in message["content"]
+            for message in captured_messages[-1]
+            if message["role"] == "system"
+        )
 
     def test_chat_flow_handles_memory_search_failure_gracefully(
         self,
@@ -52,10 +62,18 @@ class TestMemoryIntegrationWorkflow:
     ) -> None:
         """If memory retrieval fails, the chat flow should still return a response."""
 
-        monkeypatch.setattr(routes, "generate_chat_response", lambda messages: "Fallback response")
-        monkeypatch.setattr(client.app.state.conversation_manager.memory_manager, "search_memories", lambda query: (_ for _ in ()).throw(RuntimeError("boom")))
+        monkeypatch.setattr(
+            routes, "generate_chat_response", lambda messages: "Fallback response"
+        )
+        monkeypatch.setattr(
+            client.app.state.conversation_manager.memory_manager,
+            "search_memories",
+            lambda query: (_ for _ in ()).throw(RuntimeError("boom")),
+        )
 
         response = client.post("/chat", json={"message": "Hello"})
 
         assert response.status_code == 200
-        assert response.json() == {"response": "Fallback response"}
+        body = response.json()
+        assert body["response"] == "Fallback response"
+        assert "detection" in body

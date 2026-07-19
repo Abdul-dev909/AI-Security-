@@ -6,23 +6,23 @@ establish connections and manage the memories table.
 
 Typical usage example:
     from app.memory_manager import MemoryManager
-    
+
     manager = MemoryManager()
     memory_id = manager.save_memory("User asked about Python")
     memories = manager.list_memories()
     manager.update_memory(memory_id, "User asked about Python OOP")
     manager.delete_memory(memory_id)
 """
+
 import sqlite3
 from datetime import datetime
-from typing import Optional
 
 from .database import get_connection
 
 
 class MemoryManager:
     """Manage memory storage and retrieval from SQLite database.
-    
+
     This class provides CRUD operations for memories including save, list,
     search, update, and delete functionality. All memories are stored with
     creation and update timestamps.
@@ -54,7 +54,7 @@ class MemoryManager:
             raise ValueError("Memory must be a non-empty string")
 
         now = datetime.now().isoformat()
-        
+
         try:
             with get_connection() as conn:
                 cursor = conn.cursor()
@@ -63,7 +63,7 @@ class MemoryManager:
                     INSERT INTO memories (memory, created_at, updated_at)
                     VALUES (?, ?, ?)
                     """,
-                    (memory, now, now)
+                    (memory, now, now),
                 )
                 conn.commit()
                 return cursor.lastrowid
@@ -102,7 +102,7 @@ class MemoryManager:
         except sqlite3.Error as e:
             raise Exception(f"Failed to list memories: {e}") from e
 
-    def load_memories(self, limit: Optional[int] = None) -> list[dict]:
+    def load_memories(self, limit: int | None = None) -> list[dict]:
         """Retrieve memories with optional limit to most recent records.
 
         Fetches memories from the database. If limit is specified, returns
@@ -139,8 +139,7 @@ class MemoryManager:
                     cursor.execute("SELECT * FROM memories ORDER BY id DESC")
                 else:
                     cursor.execute(
-                        "SELECT * FROM memories ORDER BY id DESC LIMIT ?",
-                        (limit,)
+                        "SELECT * FROM memories ORDER BY id DESC LIMIT ?", (limit,)
                     )
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows]
@@ -188,7 +187,7 @@ class MemoryManager:
                     WHERE LOWER(memory) LIKE LOWER(?)
                     ORDER BY id ASC
                     """,
-                    (f"%{query}%",)
+                    (f"%{query}%",),
                 )
                 rows = cursor.fetchall()
                 return [dict(row) for row in rows]
@@ -224,7 +223,7 @@ class MemoryManager:
         """
         if not isinstance(memory_id, int) or memory_id <= 0:
             raise ValueError("Memory ID must be a positive integer")
-        
+
         if not new_memory or not isinstance(new_memory, str):
             raise ValueError("New memory must be a non-empty string")
 
@@ -239,7 +238,7 @@ class MemoryManager:
                     SET memory = ?, updated_at = ?
                     WHERE id = ?
                     """,
-                    (new_memory, now, memory_id)
+                    (new_memory, now, memory_id),
                 )
                 conn.commit()
                 return cursor.rowcount == 1

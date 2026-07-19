@@ -28,7 +28,9 @@ class Settings:
         "and keeps short conversation history in memory."
     )
     FALLBACK_MODEL_NAMES: tuple[str, ...] = ("qwen3:8b",)
-    FALLBACK_RESPONSE: str = "I’m temporarily unable to reach the AI service. Please try again shortly."
+    FALLBACK_RESPONSE: str = (
+        "I’m temporarily unable to reach the AI service. Please try again shortly."
+    )
 
 
 settings = Settings()
