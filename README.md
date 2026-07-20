@@ -1,236 +1,220 @@
-# AI Security Agent & Command Center
+# AI Security Testing Platform & Command Center
 
-This project is a beginner-friendly, modular AI security agent backend built with Python, FastAPI, and a local Ollama model, coupled with a premium, responsive React-based dashboard frontend. It features a SQLite-backed memory system, automated pytest coverage, graceful fallback behaviors when the AI service is offline, and a comprehensive security command center UI.
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)
+![React 19](https://img.shields.io/badge/React-19-blue.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109%2B-00a393.svg)
+
+This project is a modular **AI Security Testing Platform** built with Python, FastAPI, and a local Ollama model, coupled with a premium, responsive React-based dashboard frontend. It is designed to rigorously test, attack, and detect vulnerabilities in Large Language Models (LLMs) through an automated execution pipeline.
 
 ---
 
-## Architecture Overview
+## 🎯 Project Overview & Features
 
-The system consists of two major parts:
-1. **FastAPI Backend**: Exposes endpoints for agent interaction (`POST /chat`) and health checks (`GET /health`), manages short-term conversation context, saves/retrieves persistent memory via SQLite, and communicates with a local Ollama server.
-2. **React Frontend (Vite + TypeScript)**: A modern security command center dashboard offering real-time status monitoring, an interactive chatbot interface, attack library pages, detection status tracking, forensic logs, and system analytics.
+*   **AI Chat Interface**: A conversational playground to interact directly with the locally hosted LLM.
+*   **Attack Engine**: Automated adversarial testing environment to run prompt injections, jailbreaks, and memory extraction attacks against the LLM.
+*   **Detection Engine**: A robust security analyzer that intercepts AI responses to identify data leakage, policy violations, and successful exploits.
+*   **Attack Library**: A registered suite of adversarial prompts categorized by severity.
+*   **REST API**: A fully decoupled FastAPI layer exposing all security engine capabilities.
+*   **Live Frontend Integration**: Real-time status monitoring, attack execution, and threat detection reporting.
+*   **Conversation Memory**: SQLite-backed persistent context and conversation tracking.
+*   **Dashboard**: A security command center for system analytics and platform health monitoring.
+
+---
+
+## 🏗️ Architecture & Workflow
+
+### Component Architecture
+
+The platform operates across three main tiers:
 
 ```mermaid
 flowchart TD
     subgraph Frontend [React Frontend - Port 5173]
-        UI[Security Command Center UI]
-        API_SVC[API Service / Axios]
+        UI[Dashboard / Attack Engine / Detection Viewer]
+        API_SVC[Axios API Service]
         UI --> API_SVC
     end
 
     subgraph Backend [FastAPI Backend - Port 8000]
         ROUTE[FastAPI Routes]
-        CONV[Conversation Manager]
-        PMT[Prompt Builder]
-        MEM[Memory Manager]
-        DB[(SQLite: memory.db)]
-        OLLAMA_CL[Ollama Client]
-        
-        ROUTE --> CONV
-        CONV --> PMT
-        CONV --> MEM
-        MEM --> DB
-        PMT --> OLLAMA_CL
+        ATTACK[Attack Engine]
+        DETECT[Detection Engine]
+        MEM[Memory Manager & SQLite]
+
+        ROUTE --> ATTACK
+        ATTACK --> DETECT
+        ROUTE --> MEM
     end
 
     subgraph LLM [Local Model Server]
         OLLAMA[Local Ollama Server]
     end
 
-    API_SVC -- CORS HTTP Request --> ROUTE
-    OLLAMA_CL -- HTTP Request (Port 11434) --> OLLAMA
-    ROUTE -- HTTP Response --> API_SVC
+    API_SVC -- HTTP/REST --> ROUTE
+    ATTACK -- HTTP (Port 11434) --> OLLAMA
 ```
 
----
+### Current Execution Workflow
 
-## Project Structure
+When a security assessment is triggered, data flows through the following automated pipeline:
 
 ```text
-AI-Security-/
-├── app/                      # Python FastAPI Backend Source Code
-│   ├── __init__.py
-│   ├── config.py             # Central application configuration & settings
-│   ├── conversation.py       # Conversation history & context manager
-│   ├── database.py           # SQLite connection & schema initialization
-│   ├── error_handlers.py     # Friendly FastAPI error formatting
-│   ├── logging_utils.py      # Console and file logging configuration
-│   ├── main.py               # FastAPI application entrypoint & middleware (CORS)
-│   ├── memory_manager.py     # CRUD operations for SQLite-based persistent memory
-│   ├── ollama_client.py      # Local Ollama LLM integration & error handling
-│   ├── prompts.py            # System prompts & final prompt compilation
-│   ├── routes.py             # API route definitions (/health, /chat)
-│   ├── schemas.py            # Pydantic request/response models
-│   └── utils.py              # Performance/timing & formatting helpers
-├── frontend/                 # React Web Application (Vite + TypeScript)
-│   ├── src/
-│   │   ├── api/              # Axios API instance configuration
-│   │   ├── assets/           # UI media assets
-│   │   ├── components/       # Layout components & common UI buttons, cards, and tables
-│   │   │   └── common/       # Modular, reusable premium UI elements
-│   │   ├── layouts/          # Main application shell with collapsible Sidebar & TopNav
-│   │   ├── mock/             # Simulated data for security features
-│   │   ├── pages/            # View components (Dashboard, Chat, Attack Engine, Analytics, etc.)
-│   │   ├── services/         # Frontend business services communicating with FastAPI
-│   │   ├── styles/           # CSS design tokens, animations, and global rules
-│   │   ├── types/            # TypeScript definitions for model structures
-│   │   ├── App.tsx           # Route declarations and main component structure
-│   │   ├── index.css         # Base stylesheet
-│   │   └── main.tsx          # React application mount script
-│   ├── package.json          # Node dependencies and scripts
-│   ├── vite.config.ts        # Vite build configuration
-│   └── README.md             # Vite project description
-├── logs/                     # Auto-generated application logs
-├── tests/                    # pytest backend tests
-├── README.md                 # Main project README (this file)
-├── explaination              # Beginner-friendly project walkthrough
-├── memory.db                 # SQLite memory database (auto-generated)
-├── requirements.txt          # Backend Python dependencies
-└── .gitignore                # Git exclusions file
+User
+  ↓
+Frontend (Initiates Attack)
+  ↓
+FastAPI (Receives Payload)
+  ↓
+Ollama (Generates LLM Response)
+  ↓
+Attack Engine (Coordinates Execution)
+  ↓
+Detection Engine (Analyzes Output)
+  ↓
+Detection Report (Aggregates Results)
+  ↓
+Frontend Dashboard (Visualizes Threat Analysis)
 ```
 
 ---
 
-## Tech Stack
+## 🚀 Modules Status
 
-### Backend Technologies
-*   **FastAPI**: Fast, asynchronous web framework for building APIs with Python.
-*   **Uvicorn**: Lightning-fast ASGI server implementation for running FastAPI.
-*   **SQLite**: Serverless, file-based SQL database for persistent agent memory.
-*   **Ollama**: Engine to run open-source large language models (like `qwen3` or `qwen3:8b`) locally.
-*   **Pytest**: Comprehensive automated testing framework.
+### Completed Modules
+*   ✅ **Module 1 – AI Agent**: LLM integration, conversational memory, basic APIs.
+*   ✅ **Module 2 – Attack Engine**: Adversarial prompt registry, execution pipeline, batch processing.
+*   ✅ **Module 3 – Detection Engine & Frontend Integration**: Threat detectors (Jailbreak, Canary, Prompt Leakage), live UI execution, visual reporting.
 
-### Frontend Technologies
-*   **React 19**: Modern component-based web interface framework.
-*   **Vite**: Next-generation front-end tooling for extremely fast development builds.
-*   **TypeScript**: Static typing for safer, cleaner code structure.
-*   **Axios**: Promise-based HTTP client for calling the backend.
-*   **Lucide React**: Premium icon set for consistent visual style.
-*   **Vanilla CSS**: Premium dark-mode security UI using CSS variables, custom grid/flex layouts, glassmorphism design, and animations.
+### Roadmap
+*   🚧 **Module 4 – Evidence Collection & Forensics**: Granular artifact logging, proof-of-exploit generation.
+*   🚧 **Module 5 – Analytics & Reporting**: Trend analysis, PDF report generation, historical security metrics.
 
 ---
 
-## Setup & Running the Application
+## 🔌 API Reference
+
+The backend exposes a clean REST interface for system integrations:
+
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/health` | Returns API status and system health |
+| `POST` | `/chat` | Sends a prompt to the LLM and returns the response |
+| `GET` | `/api/attacks` | Retrieves the registered Attack Library |
+| `POST` | `/api/attacks/run` | Executes a specific attack by ID |
+| `POST` | `/api/attacks/run-all` | Executes all enabled attacks sequentially |
+
+---
+
+## 🛠️ Technology Stack
+
+**Backend**
+*   **FastAPI** (Routing & API layer)
+*   **Ollama** (Local LLM execution)
+*   **Pydantic** (Data validation & schemas)
+*   **Pytest** (Automated testing framework)
+*   **SQLite** (Persistent memory storage)
+
+**Frontend**
+*   **React 19** (Component-based UI)
+*   **TypeScript** (Static typing)
+*   **Vite** (Next-generation build tool)
+*   **Axios** (HTTP client)
+*   **Lucide React** (Iconography)
+
+---
+
+## ⚙️ Setup & Installation
 
 ### 1. Prerequisites
 *   Python 3.10+
 *   Node.js 18+ & npm
-*   Ollama (installed and running locally)
+*   [Ollama](https://ollama.com/) (Installed and running locally)
 
----
-
-### 2. Backend Setup & Run
-
+### 2. Backend Setup
 1. **Activate virtual environment**:
     ```bash
     python3 -m venv .venv
     source .venv/bin/activate
     ```
-
 2. **Install dependencies**:
     ```bash
     pip install -r requirements.txt
     ```
-
-3. **Ensure Ollama is running**:
-    Make sure Ollama is installed. If needed, pull the default model:
+3. **Pull the LLM model**:
     ```bash
     ollama pull qwen3
     ```
-    The application will automatically attempt fallback to `qwen3:8b` or a generic message if Ollama is unresponsive.
-
 4. **Launch the FastAPI backend server**:
     ```bash
     uvicorn app.main:app --host 127.0.0.1 --port 8000
     ```
 
-5. **Verify the backend** (optional):
-    ```bash
-    curl http://127.0.0.1:8000/health
-    # Output: {"status":"running"}
-    ```
-
----
-
-### 3. Frontend Setup & Run
-
+### 3. Frontend Setup
 1. **Navigate to the frontend directory**:
     ```bash
     cd frontend
     ```
-
-2. **Install node dependencies**:
+2. **Install dependencies**:
     ```bash
     npm install
     ```
-
 3. **Start the development server**:
     ```bash
     npm run dev
     ```
-    This will start Vite on [http://localhost:5173](http://localhost:5173).
-
-4. **Access the application**:
-    Open your browser and navigate to `http://localhost:5173`. The UI will establish a connection to your running FastAPI backend.
+4. **Access the application**: Navigate to `http://localhost:5173` in your browser.
 
 ---
 
-## Detailed Features
+## 📂 Project Structure
 
-### 1. Security Command Center (Dashboard)
-*   **Real-time Status**: Displays connection indicators for both the FastAPI backend and local Ollama model.
-*   **System Overview**: Provides metadata about platform version, model name, active databases, and system uptime.
-*   **Recent Activity Log**: An animated timeline showing security-related operations, initialization steps, and database connectivity logs.
-
-### 2. Interactive AI Chat
-*   A premium, clean interface featuring user and assistant message bubbles.
-*   Shows a visual loading state (`Sending...` pulse animation) while waiting for the local LLM.
-*   Stores short-term conversation context in memory to keep historical message consistency.
-
-### 3. Memory & Persistent Database
-*   **SQLite Integration**: Memories are persistently stored in the root directory within a database called `memory.db`.
-*   **Database Schema (`memories` table)**:
-    *   `id`: Primary key.
-    *   `memory`: Stored text block.
-    *   `created_at`: Creation timestamp.
-    *   `updated_at`: Timestamp of the last update.
-*   **Automatic Cleanup**: If you need to clear the memory database, delete `memory.db` and restart the backend:
-    ```bash
-    rm memory.db
-    ```
-
-### 4. Advanced Security Pages (Simulated Engine)
-*   **Attack Engine**: An overview of 8 adversarial attack vectors categorized by severity (Critical, High, Medium, Low), including an execution history table.
-*   **Detection**: Visual interfaces mapping detected security vulnerabilities.
-*   **Evidence & Forensics**: Read-only tracking and investigation tables representing proof of malicious operations.
-*   **Analytics**: Graphic visualization panels for performance statistics.
+```text
+AI-Security-/
+├── app/                      # Python FastAPI Backend
+│   ├── attack_engine/        # Adversarial attack execution logic
+│   ├── detection/            # Threat detection & analysis plugins
+│   ├── routes/               # API endpoint definitions
+│   ├── main.py               # Application entrypoint
+│   └── ...
+├── frontend/                 # React Web Application
+│   ├── src/
+│   │   ├── api/              # Axios configuration
+│   │   ├── components/       # Reusable UI elements (GlassCard, DataTable, etc.)
+│   │   ├── pages/            # Views (Dashboard, AttackEngine, Detection, Chat)
+│   │   ├── services/         # Execution store & API calls
+│   │   └── ...
+├── tests/                    # 130+ passing pytest backend tests
+├── memory.db                 # Auto-generated SQLite memory store
+├── requirements.txt          # Python dependencies
+└── package.json              # Node dependencies (in frontend/)
+```
 
 ---
 
-## Testing
+## 📸 Screenshots
 
-Backend test coverage is written using `pytest`. Run the full backend test suite with:
+*(Placeholders for future application screenshots)*
+
+*   **Dashboard**: System overview and active connections.
+*   **Attack Engine**: Execution grid, live testing, and history cache.
+*   **Detection Viewer**: Threat analysis reports, severity breakdowns.
+*   **Chat**: Interactive LLM conversation interface.
+
+---
+
+## 🧪 Testing
+
+Run the full backend test suite to verify the engines and endpoints:
 
 ```bash
 pytest
 ```
 
-The test coverage covers:
-*   FastAPI health endpoint behavior
-*   Chat endpoint validation & schema formatting
-*   SQLite memory manager CRUD operations
-*   FastAPI integration with memory persistence
-*   Ollama client timeouts and service fallback handlers
+The test suite thoroughly covers execution timeouts, schema validations, memory integrations, and isolated detector logic.
 
 ---
 
-## Git Workflow
+## 📝 License
 
-To save your work and update the shared codebase:
-
-```bash
-git status
-git add .
-git commit -m "Your description of updates"
-git push origin main
-```
+This project is licensed under the MIT License. See the LICENSE file for details.
