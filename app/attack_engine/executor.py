@@ -6,6 +6,8 @@ import logging
 
 from app.attack_engine.models import Attack, AttackResult
 from app.conversation import ConversationManager
+from app.detection.coordinator import DetectionCoordinator
+from app.detection.models import DetectionContext
 from app.ollama_client import generate_chat_response
 from app.prompts import PromptBuilder
 from app.utils import execution_timer
@@ -23,15 +25,18 @@ class AttackExecutor:
         self,
         prompt_builder: PromptBuilder,
         conversation_manager: ConversationManager,
+        detection_coordinator: DetectionCoordinator,
     ) -> None:
         """Initialize the executor with the required agent components.
 
         Args:
             prompt_builder: The PromptBuilder instance from the agent.
             conversation_manager: The ConversationManager instance from the agent.
+            detection_coordinator: The DetectionCoordinator instance to use.
         """
         self.prompt_builder = prompt_builder
         self.conversation_manager = conversation_manager
+        self.detection_coordinator = detection_coordinator
 
     def execute(self, attack: Attack) -> AttackResult:
         """Execute a single attack against the AI agent.
@@ -75,6 +80,23 @@ class AttackExecutor:
                 error_msg = f"{type(exc).__name__}: {exc!s}"
                 execution_success = False
 
+        detection_report = None
+        if execution_success and response is not None:
+            context = DetectionContext(
+                user_prompt=attack.prompt,
+                ai_response=response,
+                conversation_history=self.conversation_manager.get_messages(),
+            )
+            detection_report = self.detection_coordinator.run_detection(context)
+        else:
+            logger.info("Attack execution failed; skipping detection.")
+
+        logger.info(
+            "Attack execution finished for: %s (ID: %s)",
+            attack.name,
+            attack.id,
+        )
+
         return AttackResult(
             attack_id=attack.id,
             attack_name=attack.name,
@@ -83,4 +105,5 @@ class AttackExecutor:
             execution_success=execution_success,
             error=error_msg,
             execution_time=elapsed(),
+            detection_report=detection_report,
         )

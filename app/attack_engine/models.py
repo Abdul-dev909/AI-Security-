@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from app.detection.models import DetectionReport
+
 
 class Attack(BaseModel):
     """Model representing an individual adversarial attack."""
@@ -55,7 +57,7 @@ class AttackResult(BaseModel):
     )
     response: str | None = Field(
         default=None,
-        description="The response returned by the AI agent, or None if execution failed.",
+        description="The response returned by the AI agent, or None if failed.",
     )
     execution_success: bool = Field(
         ...,
@@ -68,4 +70,8 @@ class AttackResult(BaseModel):
     execution_time: float = Field(
         ...,
         description="The time taken to run the attack, in seconds.",
+    )
+    detection_report: DetectionReport | None = Field(
+        default=None,
+        description="Detection report associated with this attack execution, or None.",
     )
