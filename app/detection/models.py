@@ -45,4 +45,5 @@ class DetectionReport:
     total_detectors_executed: int = 0
     total_detections: int = 0
     highest_severity: DetectionSeverity | None = None
+    detection_time: float = 0.0
     results: list[DetectionResult] = field(default_factory=list)

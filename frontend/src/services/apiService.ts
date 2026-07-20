@@ -28,3 +28,43 @@ export async function sendChat(message: string) {
     throw error
   }
 }
+
+/**
+ * Fetches all registered attacks.
+ */
+export async function listAttacks() {
+  try {
+    const response = await api.get('/api/attacks')
+    return response.data
+  } catch (error) {
+    console.error('Error listing attacks:', error)
+    throw error
+  }
+}
+
+/**
+ * Runs a single attack by its ID.
+ * @param {string} attackId - The ID of the attack to run.
+ */
+export async function runAttack(attackId: string) {
+  try {
+    const response = await api.post('/api/attacks/run', { attack_id: attackId })
+    return response.data
+  } catch (error) {
+    console.error(`Error running attack ${attackId}:`, error)
+    throw error
+  }
+}
+
+/**
+ * Runs all enabled attacks in batch.
+ */
+export async function runAllAttacks() {
+  try {
+    const response = await api.post('/api/attacks/run-all')
+    return response.data
+  } catch (error) {
+    console.error('Error running all attacks:', error)
+    throw error
+  }
+}

@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.attack_engine.models import AttackResult
 from app.detection.models import DetectionReport
 from app.utils import normalize_text
 
@@ -83,4 +84,46 @@ class ValidationErrorResponse(BaseModel):
     errors: list[str] = Field(
         default_factory=list,
         description="Specific validation issues found in the request.",
+    )
+
+
+class RunAttackRequest(BaseModel):
+    """Incoming request body to run a specific attack."""
+
+    model_config = ConfigDict(
+        json_schema_extra={"example": {"attack_id": "prompt-inject-1"}}
+    )
+
+    attack_id: str = Field(
+        ...,
+        min_length=1,
+        description="The unique identifier of the attack to execute.",
+    )
+
+
+class RunAllAttacksResponse(BaseModel):
+    """Outgoing response body for executing all enabled attacks."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "total_attacks": 2,
+                "completed": 1,
+                "failed": 1,
+                "results": [],
+            }
+        }
+    )
+
+    total_attacks: int = Field(
+        description="Total number of enabled attacks that were executed."
+    )
+    completed: int = Field(
+        description="Number of attacks that executed successfully."
+    )
+    failed: int = Field(
+        description="Number of attacks that failed to execute."
+    )
+    results: list[AttackResult] = Field(
+        default_factory=list, description="Detailed results for each executed attack."
     )

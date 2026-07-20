@@ -1,10 +1,4 @@
-"""API routes for the AI Agent application.
-
-The router keeps HTTP concerns separate from app startup so the project stays
-easy to extend when new endpoints are added later.
-"""
-
-from __future__ import annotations
+"""Chat endpoint."""
 
 import logging
 
@@ -22,7 +16,7 @@ from app.ollama_client import (
     generate_chat_response,
 )
 from app.prompts import PromptBuilder
-from app.schemas import ChatRequest, ChatResponse, HealthResponse
+from app.schemas import ChatRequest, ChatResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -30,50 +24,17 @@ logger = logging.getLogger(__name__)
 
 def get_conversation_manager(request: Request) -> ConversationManager:
     """Return the shared conversation manager stored on the FastAPI app."""
-
     return request.app.state.conversation_manager
 
 
 def get_prompt_builder(request: Request) -> PromptBuilder:
     """Return the shared prompt builder stored on the FastAPI app."""
-
     return request.app.state.prompt_builder
 
 
 def get_detection_coordinator(request: Request) -> DetectionCoordinator:
     """Return the shared detection coordinator stored on the FastAPI app."""
-
     return request.app.state.detection_coordinator
-
-
-@router.get(
-    "/health",
-    response_model=HealthResponse,
-    summary="Check whether the API is running",
-    description=(
-        "Use this endpoint to confirm that the FastAPI application is online.\n\n"
-        "Example request:\n"
-        "GET /health\n\n"
-        "Example response:\n"
-        '{"status": "running"}\n\n'
-        "Status codes:\n"
-        "200 OK"
-    ),
-    responses={
-        status.HTTP_200_OK: {
-            "description": "The API is running normally.",
-            "content": {
-                "application/json": {
-                    "example": {"status": "running"},
-                }
-            },
-        }
-    },
-)
-def health_check() -> HealthResponse:
-    """Return a simple status payload so users can verify the server is up."""
-
-    return HealthResponse(status="running")
 
 
 @router.post(
@@ -118,7 +79,6 @@ def chat(
     detection_coordinator: DetectionCoordinator = Depends(get_detection_coordinator),
 ) -> ChatResponse:
     """Send a user message to Ollama and return the assistant response."""
-
     logger.info("User message received: %s", request.message)
     messages = conversation_manager.build_messages(prompt_builder, request.message)
 

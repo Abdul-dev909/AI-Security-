@@ -5,8 +5,67 @@
   margin-bottom: var(--space-8);
 }
 
+.detection__context-header {
+  margin-bottom: var(--space-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detection__context-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-1);
+}
+
+.detection__context-meta {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.detection__severity-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.detection__severity-card {
+  text-align: center;
+  padding: var(--space-4);
+}
+
+.detection__severity-card-label {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wider);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.detection__severity-card-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+}
+
+.detection__severity-card--critical .detection__severity-card-value { color: var(--color-danger); }
+.detection__severity-card--high .detection__severity-card-value { color: var(--color-warning); }
+.detection__severity-card--medium .detection__severity-card-value { color: var(--color-accent-primary); }
+.detection__severity-card--low .detection__severity-card-value { color: var(--color-text); }
+
+.detection__results-table {
+  margin-bottom: var(--space-8);
+}
+
+.detection__evidence {
+  margin-top: var(--space-8);
+}
+
 @media (max-width: 640px) {
   .detection__metrics {
     grid-template-columns: 1fr;
+  }
+  .detection__severity-summary {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

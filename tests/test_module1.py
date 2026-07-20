@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import app.database as database
-import app.routes as routes
+import app.routes.chat as chat_routes
 from app.config import settings
 from app.conversation import ConversationManager
 from app.main import app
@@ -52,7 +52,7 @@ def test_chat_success(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> No
     """The chat endpoint should return the model response and store history."""
 
     monkeypatch.setattr(
-        routes,
+        chat_routes,
         "generate_chat_response",
         lambda messages: "Hello! How can I help you today?",
     )
@@ -95,12 +95,12 @@ def test_chat_empty_message(client: TestClient) -> None:
 def test_chat_ollama_unavailable(
     client: TestClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """When Ollama is unavailable, the API should return a graceful fallback response."""
+    """When Ollama is unavailable, the API should return a graceful fallback."""
 
     def raise_connection_error(messages: list[dict[str, str]]) -> str:
         raise OllamaConnectionError("Could not connect to the local Ollama server.")
 
-    monkeypatch.setattr(routes, "generate_chat_response", raise_connection_error)
+    monkeypatch.setattr(chat_routes, "generate_chat_response", raise_connection_error)
 
     response = client.post("/chat", json={"message": "Hello"})
 
@@ -118,7 +118,7 @@ def test_chat_ollama_timeout_returns_fallback_message(
     def raise_timeout_error(messages: list[dict[str, str]]) -> str:
         raise OllamaTimeoutError("The Ollama request timed out.")
 
-    monkeypatch.setattr(routes, "generate_chat_response", raise_timeout_error)
+    monkeypatch.setattr(chat_routes, "generate_chat_response", raise_timeout_error)
 
     response = client.post("/chat", json={"message": "Hello"})
 
