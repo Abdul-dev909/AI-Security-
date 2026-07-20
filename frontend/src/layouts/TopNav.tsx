@@ -10,6 +10,7 @@ const pageTitles: Record<string, string> = {
   '/forensics': 'Forensics',
   '/analytics': 'Analytics',
   '/settings': 'Settings',
+  '/chat': 'AI Chat',
 };
 
 interface TopNavProps {

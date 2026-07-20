@@ -51,7 +51,6 @@ export interface Attack {
   enabled: boolean;
 }
 
-/** Attack execution result - mirrors backend AttackResult model */
 export interface AttackResult {
   attack_id: string;
   attack_name: string;
@@ -60,9 +59,10 @@ export interface AttackResult {
   execution_success: boolean;
   error: string | null;
   execution_time: number;
+  detection_report: DetectionReport | null;
 }
 
-/** Execution history row for the attack engine table */
+/** Execution history row for the attack engine table (legacy) */
 export interface ExecutionHistoryRow {
   id: string;
   timestamp: string;
@@ -70,6 +70,41 @@ export interface ExecutionHistoryRow {
   severity: Severity;
   status: 'success' | 'failed' | 'running';
   result: string;
+}
+
+/** Detection result item */
+export interface DetectionResultItem {
+  detector_name: string;
+  detected: boolean;
+  severity: string | null;
+  confidence: number;
+  explanation: string;
+  evidence: unknown[];
+}
+
+/** Detection report */
+export interface DetectionReport {
+  total_detectors_executed: number;
+  total_detections: number;
+  highest_severity: string | null;
+  detection_time: number;
+  results: DetectionResultItem[];
+}
+
+/** Response for run-all-attacks endpoint */
+export interface RunAllAttacksResponse {
+  total_attacks: number;
+  completed: number;
+  failed: number;
+  results: AttackResult[];
+}
+
+/** Execution store entry */
+export interface ExecutionEntry {
+  id: string;
+  timestamp: string;
+  attack: Attack;
+  result: AttackResult;
 }
 
 /** Detection metric */
