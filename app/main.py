@@ -9,6 +9,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.attack_engine.attacks import populate_registry
+from app.attack_engine.engine import AttackEngine
+from app.attack_engine.executor import AttackExecutor
+from app.attack_engine.registry import AttackRegistry
 from app.config import settings
 from app.conversation import ConversationManager
 from app.detection import DetectionCoordinator, DetectorRegistry
@@ -55,6 +59,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     coordinator = DetectionCoordinator(registry=registry)
     app.state.detection_coordinator = coordinator
+
+    attack_registry = AttackRegistry()
+    populate_registry(attack_registry)
+    app.state.attack_registry = attack_registry
+
+    executor = AttackExecutor(
+        prompt_builder=prompt_builder,
+        conversation_manager=conversation_manager,
+        detection_coordinator=coordinator,
+    )
+    attack_engine = AttackEngine(executor=executor)
+    app.state.attack_engine = attack_engine
 
     logger.info("Application startup complete.")
     yield

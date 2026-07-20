@@ -22,7 +22,7 @@ lint.select = [
     "RUF",  # Ruff-specific rules
     "SIM",  # flake8-simplify
 ]
-lint.ignore = []
+lint.ignore = ["B008"]
 
 # Exclude common dirs.
 exclude = [

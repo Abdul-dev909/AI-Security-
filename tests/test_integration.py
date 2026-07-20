@@ -6,7 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import app.conversation as conversation_module
-import app.routes as routes
+import app.routes.chat as chat_routes
 from app.memory_manager import MemoryManager
 
 
@@ -18,7 +18,7 @@ class TestMemoryIntegrationWorkflow:
         client: TestClient,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """A chat request should persist a memory that remains available after restart."""
+        """A chat request should persist a memory that is available after restart."""
 
         captured_messages: list[list[dict[str, str]]] = []
 
@@ -27,7 +27,7 @@ class TestMemoryIntegrationWorkflow:
             return "I remember that."
 
         monkeypatch.setattr(
-            routes, "generate_chat_response", fake_generate_chat_response
+            chat_routes, "generate_chat_response", fake_generate_chat_response
         )
         monkeypatch.setattr(conversation_module, "is_important", lambda text: True)
 
@@ -63,7 +63,7 @@ class TestMemoryIntegrationWorkflow:
         """If memory retrieval fails, the chat flow should still return a response."""
 
         monkeypatch.setattr(
-            routes, "generate_chat_response", lambda messages: "Fallback response"
+            chat_routes, "generate_chat_response", lambda messages: "Fallback response"
         )
         monkeypatch.setattr(
             client.app.state.conversation_manager.memory_manager,
