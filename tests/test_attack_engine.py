@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+import app.attack_engine.executor as executor_module
 from app.attack_engine.engine import AttackEngine
 from app.attack_engine.executor import AttackExecutor
 from app.attack_engine.models import Attack, AttackResult
@@ -12,12 +13,11 @@ from app.attack_engine.registry import AttackRegistry
 from app.conversation import ConversationManager
 from app.memory_manager import MemoryManager
 from app.prompts import PromptBuilder
-import app.attack_engine.executor as executor_module
-
 
 # ==========================================
 # Tests for Attack and AttackResult Models
 # ==========================================
+
 
 class TestAttackModel:
     """Unit tests for the Attack model."""
@@ -77,6 +77,7 @@ class TestAttackResultModel:
 # Tests for AttackRegistry
 # ==========================================
 
+
 class TestAttackRegistry:
     """Unit tests for the AttackRegistry class."""
 
@@ -97,7 +98,9 @@ class TestAttackRegistry:
             severity="critical",
         )
 
-    def test_register_and_get(self, registry: AttackRegistry, sample_attack: Attack) -> None:
+    def test_register_and_get(
+        self, registry: AttackRegistry, sample_attack: Attack
+    ) -> None:
         """Registering an attack should store it, and get should retrieve it."""
         registry.register(sample_attack)
         assert registry.get("attack-1") == sample_attack
@@ -133,7 +136,9 @@ class TestAttackRegistry:
         with pytest.raises(ValueError, match="not found in registry"):
             registry.unregister("non-existent")
 
-    def test_clear_registry(self, registry: AttackRegistry, sample_attack: Attack) -> None:
+    def test_clear_registry(
+        self, registry: AttackRegistry, sample_attack: Attack
+    ) -> None:
         """Clear should remove all registered attacks."""
         registry.register(sample_attack)
         registry.clear()
@@ -143,6 +148,7 @@ class TestAttackRegistry:
 # ==========================================
 # Tests for AttackExecutor
 # ==========================================
+
 
 class TestAttackExecutor:
     """Unit tests for the AttackExecutor class."""
@@ -171,7 +177,9 @@ class TestAttackExecutor:
             captured_messages.extend(messages)
             return expected_response
 
-        monkeypatch.setattr(executor_module, "generate_chat_response", mock_generate_chat_response)
+        monkeypatch.setattr(
+            executor_module, "generate_chat_response", mock_generate_chat_response
+        )
 
         attack = Attack(
             id="att-1",
@@ -201,12 +209,14 @@ class TestAttackExecutor:
     def test_execution_failure_exception_handling(
         self, executor: AttackExecutor, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Exceptions in the pipeline should be handled and returned as execution failures."""
+        """Exceptions in the pipeline should be handled as execution failures."""
 
         def mock_generate_chat_response(messages: list[dict[str, str]]) -> str:
             raise RuntimeError("Ollama connection failed")
 
-        monkeypatch.setattr(executor_module, "generate_chat_response", mock_generate_chat_response)
+        monkeypatch.setattr(
+            executor_module, "generate_chat_response", mock_generate_chat_response
+        )
 
         attack = Attack(
             id="att-2",
@@ -233,6 +243,7 @@ class TestAttackExecutor:
 # ==========================================
 # Tests for AttackEngine
 # ==========================================
+
 
 class TestAttackEngine:
     """Unit tests for the AttackEngine class."""
@@ -277,7 +288,10 @@ class TestAttackEngine:
         return reg
 
     def test_engine_executes_enabled_and_skips_disabled(
-        self, registry: AttackRegistry, memory_manager: MemoryManager, monkeypatch: pytest.MonkeyPatch
+        self,
+        registry: AttackRegistry,
+        memory_manager: MemoryManager,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Engine should execute only enabled attacks and aggregate results."""
         conversation_manager = ConversationManager(memory_manager=memory_manager)

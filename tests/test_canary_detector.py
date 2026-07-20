@@ -1,4 +1,5 @@
 import pytest
+
 from app.detection.detectors.canary_detector import CanaryDetector
 from app.detection.models import DetectionContext, DetectionSeverity
 

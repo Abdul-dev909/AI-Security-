@@ -15,7 +15,7 @@ Typical usage example:
 """
 
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .database import get_connection
 
@@ -53,7 +53,7 @@ class MemoryManager:
         if not memory or not isinstance(memory, str):
             raise ValueError("Memory must be a non-empty string")
 
-        now = datetime.now().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         try:
             with get_connection() as conn:
@@ -66,7 +66,7 @@ class MemoryManager:
                     (memory, now, now),
                 )
                 conn.commit()
-                return cursor.lastrowid
+                return cursor.lastrowid or 0
         except sqlite3.Error as e:
             raise Exception(f"Failed to save memory: {e}") from e
 
@@ -227,7 +227,7 @@ class MemoryManager:
         if not new_memory or not isinstance(new_memory, str):
             raise ValueError("New memory must be a non-empty string")
 
-        now = datetime.now().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
 
         try:
             with get_connection() as conn:

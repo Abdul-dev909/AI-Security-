@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
@@ -13,7 +14,7 @@ from app.schemas import ValidationErrorResponse
 logger = logging.getLogger(__name__)
 
 
-def _format_validation_error(error: dict[str, object]) -> str:
+def _format_validation_error(error: dict[str, Any]) -> str:
     """Convert a Pydantic validation error into a readable string."""
 
     location = ".".join(str(part) for part in error.get("loc", []))

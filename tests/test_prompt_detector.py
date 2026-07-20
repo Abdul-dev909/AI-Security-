@@ -1,4 +1,5 @@
 import pytest
+
 from app.detection.detectors.prompt_leakage_detector import PromptLeakageDetector
 from app.detection.models import DetectionContext, DetectionSeverity
 

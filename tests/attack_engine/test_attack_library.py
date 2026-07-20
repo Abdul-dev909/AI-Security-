@@ -27,10 +27,10 @@ from app.attack_engine.attacks import (
 from app.attack_engine.models import Attack
 from app.attack_engine.registry import AttackRegistry
 
-
 # ================================================================
 # Helpers
 # ================================================================
+
 
 def _validate_attack_metadata(attack: BaseAttack) -> None:
     """Assert that every required metadata field is non-empty."""
@@ -38,15 +38,18 @@ def _validate_attack_metadata(attack: BaseAttack) -> None:
     assert attack.category != "", "category must not be empty"
     assert attack.description != "", "description must not be empty"
     assert attack.expected_behavior != "", "expected_behavior must not be empty"
-    assert attack.difficulty in {"Easy", "Medium", "Hard"}, (
-        f"difficulty must be Easy, Medium, or Hard — got '{attack.difficulty}'"
-    )
+    assert attack.difficulty in {
+        "Easy",
+        "Medium",
+        "Hard",
+    }, f"difficulty must be Easy, Medium, or Hard — got '{attack.difficulty}'"
     assert len(attack.prompts) > 0, "prompts list must not be empty"
 
 
 # ================================================================
 # BaseAttack Tests
 # ================================================================
+
 
 class TestBaseAttack:
     """Tests for the BaseAttack dataclass and its helper methods."""
@@ -169,7 +172,7 @@ class TestBaseAttack:
             prompts=prompts,
         )
         models = attack.to_attack_models()
-        for model, original_prompt in zip(models, prompts):
+        for model, original_prompt in zip(models, prompts, strict=False):
             assert model.prompt == original_prompt
 
     def test_register_all_populates_registry(self) -> None:
@@ -204,6 +207,7 @@ class TestBaseAttack:
 # ================================================================
 # Prompt Injection Tests
 # ================================================================
+
 
 class TestPromptInjection:
     """Tests for the Prompt Injection attack definition."""
@@ -241,6 +245,7 @@ class TestPromptInjection:
 # Jailbreak Tests
 # ================================================================
 
+
 class TestJailbreak:
     """Tests for the Jailbreak attack definition."""
 
@@ -276,6 +281,7 @@ class TestJailbreak:
 # ================================================================
 # System Prompt Extraction Tests
 # ================================================================
+
 
 class TestSystemPromptExtraction:
     """Tests for the System Prompt Extraction attack definition."""
@@ -313,6 +319,7 @@ class TestSystemPromptExtraction:
 # Canary Extraction Tests
 # ================================================================
 
+
 class TestCanaryExtraction:
     """Tests for the Canary Extraction attack definition."""
 
@@ -348,6 +355,7 @@ class TestCanaryExtraction:
 # ================================================================
 # Memory Attack Tests
 # ================================================================
+
 
 class TestMemoryOverwrite:
     """Tests for the Memory Overwrite attack definition."""
@@ -440,6 +448,7 @@ class TestMemoryAttacksTuple:
 # ================================================================
 # ALL_ATTACKS & Registry Integration Tests
 # ================================================================
+
 
 class TestAllAttacks:
     """Tests for ALL_ATTACKS aggregation and registry integration."""

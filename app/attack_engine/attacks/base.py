@@ -8,9 +8,12 @@ and can convert itself into the engine-compatible ``Attack`` Pydantic models.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from app.attack_engine.models import Attack
+
+if TYPE_CHECKING:
+    from app.attack_engine.registry import AttackRegistry
 
 # Allowed difficulty levels for type safety.
 Difficulty = Literal["Easy", "Medium", "Hard"]
@@ -80,7 +83,7 @@ class BaseAttack:
 
     def register_all(
         self,
-        registry: AttackRegistry,  # noqa: F821 — forward ref
+        registry: AttackRegistry,
         *,
         severity: str | None = None,
     ) -> list[Attack]:

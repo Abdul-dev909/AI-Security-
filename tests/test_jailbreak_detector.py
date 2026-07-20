@@ -1,4 +1,5 @@
 import pytest
+
 from app.detection.detectors.jailbreak_detector import JailbreakDetector
 from app.detection.models import DetectionContext, DetectionSeverity
 
