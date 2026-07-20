@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Any, cast
 
 from app.config import settings
 
@@ -45,4 +46,4 @@ def setup_logging() -> None:
     root_logger.setLevel(log_level)
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
-    root_logger._ai_agent_logging_configured = True
+    cast(Any, root_logger)._ai_agent_logging_configured = True

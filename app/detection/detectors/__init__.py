@@ -9,7 +9,6 @@ from app.detection.detectors.sensitive_information_detector import (
     SensitiveInformationDetector,
 )
 
-
 __all__ = [
     "CanaryDetector",
     "InstructionOverrideDetector",
