@@ -1,4 +1,4 @@
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../../components/common/PageHeader';
 import { StatCard } from '../../components/common/StatCard';
 import { SectionCard } from '../../components/common/SectionCard';
@@ -21,6 +21,7 @@ const severityMap: Record<Severity | string, { variant: 'failed' | 'placeholder'
 export function Detection() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const execId = searchParams.get('exec');
   
   const execution = execId ? getExecution(execId) : null;
@@ -170,8 +171,8 @@ export function Detection() {
             icon="ShieldOff"
             title="No Detection Results"
             description="Run attacks to generate detection data. The detection engine will analyze AI model responses for potential vulnerabilities and security issues."
-            buttonText="Start Detection Scan"
-            buttonDisabled
+            buttonText="Go to Attack Engine"
+            onClick={() => navigate('/attacks')}
           />
         </SectionCard>
       )}

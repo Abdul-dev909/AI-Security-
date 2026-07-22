@@ -77,21 +77,38 @@ export function AttackEngine() {
     });
   };
 
-  const handleRunAttack = async (attack: Attack) => {
-    setRunningAttacks(prev => new Set(prev).add(attack.id));
+  const handleRunAttackGroup = async (group: any) => {
+    setRunningAttacks(prev => new Set(prev).add(group.baseName));
     
     try {
-      const result = await runAttack(attack.id);
-      setResultsMap(prev => new Map(prev).set(attack.id, result));
-      addExecution(attack, result);
+      for (const attack of group.variants) {
+        try {
+          const result = await runAttack(attack.id);
+          setResultsMap(prev => new Map(prev).set(attack.id, result));
+          addExecution(attack, result);
+          updateSummary([result]);
+        } catch (error: any) {
+          console.error(`Failed to run ${attack.name}:`, error);
+          const failedResult: AttackResult = {
+            attack_id: attack.id,
+            attack_name: attack.name,
+            prompt: attack.prompt,
+            response: null,
+            execution_success: false,
+            error: error.message || 'Connection failed',
+            execution_time: 0,
+            detection_report: undefined as any
+          };
+          setResultsMap(prev => new Map(prev).set(attack.id, failedResult));
+          addExecution(attack, failedResult);
+          updateSummary([failedResult]);
+        }
+      }
       setExecutions(getAllExecutions());
-      updateSummary([result]);
-    } catch (error) {
-      console.error(`Failed to run ${attack.name}:`, error);
     } finally {
       setRunningAttacks(prev => {
         const next = new Set(prev);
-        next.delete(attack.id);
+        next.delete(group.baseName);
         return next;
       });
     }
@@ -99,7 +116,7 @@ export function AttackEngine() {
 
   const handleRunAll = async () => {
     const enabledAttacks = attacks.filter(a => a.enabled);
-    setRunningAttacks(new Set(enabledAttacks.map(a => a.id)));
+    setRunningAttacks(new Set(['all_running']));
     
     try {
       const response = await runAllAttacks();
@@ -116,8 +133,27 @@ export function AttackEngine() {
       setResultsMap(newResults);
       setExecutions(getAllExecutions());
       updateSummary(response.results);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to run all:', error);
+      const newResults = new Map(resultsMap);
+      const syntheticResults: AttackResult[] = [];
+      enabledAttacks.forEach(attack => {
+        const failedResult: AttackResult = {
+          attack_id: attack.id,
+          attack_name: attack.name,
+          prompt: attack.prompt,
+          response: null,
+          execution_success: false,
+          error: error.message || 'Connection failed',
+          execution_time: 0
+        };
+        newResults.set(attack.id, failedResult);
+        addExecution(attack, failedResult);
+        syntheticResults.push(failedResult);
+      });
+      setResultsMap(newResults);
+      setExecutions(getAllExecutions());
+      updateSummary(syntheticResults);
     } finally {
       setRunningAttacks(new Set());
     }
@@ -239,69 +275,106 @@ export function AttackEngine() {
       {/* Attack Cards Grid */}
       <div className="attack-engine__grid">
         {loading && <p className="text-muted">Loading attack library...</p>}
-        {!loading && filteredAttacks.map((attack) => {
-          const sev = severityMap[attack.severity] || severityMap.none;
-          const isRunning = runningAttacks.has(attack.id);
-          const result = resultsMap.get(attack.id);
-          
-          return (
-            <GlassCard 
-              key={attack.id} 
-              className={`attack-engine__card ${isRunning ? 'attack-engine__running-indicator' : ''}`} 
-              hoverable
-            >
-              <div className="attack-engine__card-header">
-                <div className="attack-engine__card-title-row">
-                  <AlertTriangle size={16} className="attack-engine__card-icon" />
-                  <h3 className="attack-engine__card-name">{attack.name}</h3>
-                </div>
-                <StatusBadge variant={sev.variant} label={sev.label} />
-              </div>
-              <span className="attack-engine__card-category">{attack.category}</span>
-              <p className="attack-engine__card-desc">{attack.description}</p>
-              
-              {result && (
-                <div className="attack-engine__card-result">
-                  <StatusBadge 
-                    variant={result.execution_success ? 'success' : 'failed'} 
-                    label={result.execution_success ? 'Success' : 'Failed'} 
-                  />
-                  <span className="attack-engine__card-time">{result.execution_time.toFixed(2)}s</span>
-                  {result.detection_report && (
-                    <>
-                      <span className="text-muted">•</span>
-                      <StatusBadge 
-                        variant={severityMap[result.detection_report.highest_severity || 'none'].variant} 
-                        label={severityMap[result.detection_report.highest_severity || 'none'].label + ' Detection'} 
-                      />
-                    </>
-                  )}
-                </div>
-              )}
+        {!loading && (() => {
+          const groupedMap = new Map<string, any>();
+          filteredAttacks.forEach(attack => {
+            const baseName = attack.name.replace(/ #\d+$/, '');
+            if (!groupedMap.has(baseName)) {
+              groupedMap.set(baseName, {
+                baseName,
+                category: attack.category,
+                description: attack.description,
+                severity: attack.severity,
+                enabled: attack.enabled,
+                variants: []
+              });
+            }
+            groupedMap.get(baseName).variants.push(attack);
+          });
+          const groupedAttacks = Array.from(groupedMap.values());
 
-              <div className="attack-engine__card-actions">
-                {result && result.detection_report && (
-                  <OutlineButton 
-                    size="sm" 
-                    onClick={() => {
-                      const exec = executions.find(e => e.attack.id === attack.id && e.result.execution_time === result.execution_time);
-                      if (exec) navigate(`/detection?exec=${exec.id}`);
-                    }}
-                  >
-                    View Detection
-                  </OutlineButton>
+          return groupedAttacks.map((group) => {
+            const sev = severityMap[group.severity] || severityMap.none;
+            const isRunning = runningAttacks.has(group.baseName) || runningAttacks.has('all_running');
+            
+            const groupResults = group.variants.map((v: Attack) => resultsMap.get(v.id)).filter(Boolean) as AttackResult[];
+            const anyFailed = groupResults.some(r => !r.execution_success);
+            const totalTime = groupResults.reduce((acc, r) => acc + r.execution_time, 0);
+            
+            let worstSeverity = 'none';
+            const severityLevels = ['none', 'low', 'medium', 'high', 'critical'];
+            groupResults.forEach(r => {
+              if (r.detection_report?.highest_severity) {
+                const level = r.detection_report.highest_severity;
+                if (severityLevels.indexOf(level) > severityLevels.indexOf(worstSeverity)) {
+                  worstSeverity = level;
+                }
+              }
+            });
+            const hasDetection = worstSeverity !== 'none';
+            
+            return (
+              <GlassCard 
+                key={group.baseName} 
+                className={`attack-engine__card ${isRunning ? 'attack-engine__running-indicator' : ''}`} 
+                hoverable
+              >
+                <div className="attack-engine__card-header">
+                  <div className="attack-engine__card-title-row">
+                    <AlertTriangle size={16} className="attack-engine__card-icon" />
+                    <h3 className="attack-engine__card-name">{group.baseName} <span className="text-muted text-sm ml-2">({group.variants.length} variant{group.variants.length > 1 ? 's' : ''})</span></h3>
+                  </div>
+                  <StatusBadge variant={sev.variant} label={sev.label} />
+                </div>
+                <span className="attack-engine__card-category">{group.category}</span>
+                <p className="attack-engine__card-desc">{group.description}</p>
+                
+                {groupResults.length > 0 && (
+                  <div className="attack-engine__card-result">
+                    <StatusBadge 
+                      variant={!anyFailed ? 'success' : 'failed'} 
+                      label={!anyFailed ? 'Success' : 'Failed'} 
+                    />
+                    <span className="attack-engine__card-time">{totalTime.toFixed(2)}s</span>
+                    {hasDetection && (
+                      <>
+                        <span className="text-muted">•</span>
+                        <StatusBadge 
+                          variant={severityMap[worstSeverity].variant} 
+                          label={severityMap[worstSeverity].label + ' Detection'} 
+                        />
+                      </>
+                    )}
+                  </div>
                 )}
-                <PrimaryButton 
-                  size="sm" 
-                  disabled={isRunning || !attack.enabled}
-                  onClick={() => handleRunAttack(attack)}
-                >
-                  {isRunning ? 'Running...' : 'Run Attack'}
-                </PrimaryButton>
-              </div>
-            </GlassCard>
-          );
-        })}
+
+                <div className="attack-engine__card-actions">
+                  {groupResults.some(r => r.detection_report) && (
+                    <OutlineButton 
+                      size="sm" 
+                      onClick={() => {
+                        const resultWithDetection = groupResults.find(r => r.detection_report);
+                        if (resultWithDetection) {
+                           const exec = executions.find(e => e.attack.id === resultWithDetection.attack_id && e.result.execution_time === resultWithDetection.execution_time);
+                           if (exec) navigate(`/detection?exec=${exec.id}`);
+                        }
+                      }}
+                    >
+                      View Detection
+                    </OutlineButton>
+                  )}
+                  <PrimaryButton 
+                    size="sm" 
+                    disabled={isRunning || !group.enabled}
+                    onClick={() => handleRunAttackGroup(group)}
+                  >
+                    {isRunning ? 'Running...' : 'Run Attack'}
+                  </PrimaryButton>
+                </div>
+              </GlassCard>
+            );
+          });
+        })()}
       </div>
 
       {/* Execution History */}
