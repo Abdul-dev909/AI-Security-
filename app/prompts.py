@@ -34,11 +34,12 @@ class PromptBuilder:
         user_message: str,
         memories: list[str] | None = None,
         conversation_history: list[dict[str, str]] | None = None,
+        tool_output: str | None = None,
     ) -> list[dict[str, str]]:
         """Return the complete chat message list for Ollama.
 
         The final order is system prompt, relevant memories, conversation
-        history, and the current user message.
+        history, tool output context (if present), and current user message.
         """
 
         active_history = conversation_history
@@ -56,6 +57,14 @@ class PromptBuilder:
 
         if active_history:
             final_messages.extend(active_history)
+
+        if tool_output and tool_output.strip():
+            final_messages.append(
+                {
+                    "role": "system",
+                    "content": f"Retrieved Context from Environment Tool:\n{tool_output.strip()}",
+                }
+            )
 
         final_messages.append({"role": "user", "content": user_message})
         return final_messages

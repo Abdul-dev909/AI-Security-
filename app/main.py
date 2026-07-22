@@ -60,6 +60,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     coordinator = DetectionCoordinator(registry=registry)
     app.state.detection_coordinator = coordinator
 
+    from app.agent import AgentRuntime
+    from app.tools import ToolManager
+
+    tool_manager = ToolManager()
+    agent_runtime = AgentRuntime(
+        conversation_manager=conversation_manager,
+        prompt_builder=prompt_builder,
+        detection_coordinator=coordinator,
+        tool_manager=tool_manager,
+    )
+    app.state.tool_manager = tool_manager
+    app.state.agent_runtime = agent_runtime
+
     attack_registry = AttackRegistry()
     populate_registry(attack_registry)
     app.state.attack_registry = attack_registry

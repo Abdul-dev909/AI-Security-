@@ -1,0 +1,113 @@
+"""Data models for the Agent Runtime pipeline."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Any, Literal
+from uuid import uuid4
+
+from pydantic import BaseModel, Field
+
+from app.tools.models import ToolExecutionResult
+
+
+class ToolInvocationRequest(BaseModel):
+    """Structured request for invoking a capability tool."""
+
+    tool_name: str = Field(description="Name of the tool to execute.")
+    arguments: dict[str, Any] = Field(
+        default_factory=dict, description="Keyword arguments passed to the tool."
+    )
+    rationale: str = Field(
+        default="", description="Reasoning or intent behind capability selection."
+    )
+
+
+class ToolInvocationResult(BaseModel):
+    """Structured result returned from executing a capability tool."""
+
+    success: bool = Field(description="Whether the tool execution succeeded.")
+    tool_name: str = Field(description="Name of the executed tool.")
+    execution_time_ms: float = Field(description="Execution time in milliseconds.")
+    raw_result: Any | None = Field(default=None, description="Raw tool result payload.")
+    formatted_output: str = Field(
+        default="", description="Human-readable text output for context injection."
+    )
+    error_message: str | None = Field(
+        default=None, description="Error message if failed."
+    )
+
+
+class CapabilityResolution(BaseModel):
+    """Outcome of resolving capabilities for an incoming request."""
+
+    capability_type: Literal[
+        "NONE", "FILESYSTEM_TOOL", "RAG", "DATABASE", "LOG_SEARCH"
+    ] = Field(
+        default="NONE", description="Type of capability required to satisfy request."
+    )
+    tool_request: ToolInvocationRequest | None = Field(
+        default=None,
+        description="Specific tool request if capability requires tool execution.",
+    )
+    confidence: float = Field(
+        default=1.0, description="Confidence score of resolution (0.0 to 1.0)."
+    )
+
+
+class StageExecutionMetadata(BaseModel):
+    """Metadata recorded for a single stage in the runtime pipeline."""
+
+    stage_name: str = Field(description="Name of the pipeline stage.")
+    start_time: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat(),
+        description="ISO timestamp when stage started.",
+    )
+    end_time: str | None = Field(
+        default=None, description="ISO timestamp when stage completed."
+    )
+    duration_ms: float = Field(
+        default=0.0, description="Stage execution duration in ms."
+    )
+    status: Literal["SUCCESS", "FAILED", "SKIPPED"] = Field(
+        default="SUCCESS", description="Execution status of stage."
+    )
+    details: dict[str, Any] = Field(
+        default_factory=dict, description="Stage-specific execution metadata."
+    )
+
+
+class AgentRequest(BaseModel):
+    """Incoming request to the Agent Runtime."""
+
+    user_prompt: str = Field(description="Raw user message text.")
+    session_id: str = Field(
+        default="default-session", description="Session identifier for isolation."
+    )
+    request_id: str = Field(
+        default_factory=lambda: f"req-{uuid4().hex[:12]}",
+        description="Unique identifier for request tracking.",
+    )
+
+
+class AgentResponse(BaseModel):
+    """Outgoing response from the Agent Runtime."""
+
+    request_id: str = Field(description="Request tracking identifier.")
+    session_id: str = Field(description="Session identifier.")
+    response_text: str = Field(description="Final assistant reply text.")
+    conversation_history: list[dict[str, str]] = Field(
+        default_factory=list, description="Updated conversation history."
+    )
+    capability_used: str | None = Field(
+        default=None, description="Name of capability/tool invoked, if any."
+    )
+    tool_result: ToolExecutionResult | None = Field(
+        default=None, description="Structured tool execution result, if any."
+    )
+    total_duration_ms: float = Field(
+        default=0.0, description="Total end-to-end execution duration in ms."
+    )
+    stage_telemetry: list[StageExecutionMetadata] = Field(
+        default_factory=list, description="Telemetry metadata for all pipeline stages."
+    )
