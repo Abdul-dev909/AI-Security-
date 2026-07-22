@@ -4,32 +4,27 @@ import logging
 
 from fastapi import APIRouter, Body, Depends, Request, status
 
-from app.config import settings
+from app.agent import AgentRequest, AgentRuntime
 from app.conversation import ConversationManager
 from app.detection import DetectionCoordinator
 from app.detection.models import DetectionContext
-from app.ollama_client import (
-    OllamaClientError,
-    OllamaConnectionError,
-    OllamaResponseError,
-    OllamaTimeoutError,
-    generate_chat_response,
-)
-from app.prompts import PromptBuilder
 from app.schemas import ChatRequest, ChatResponse
+
+from app.ollama_client import generate_chat_response
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+
+def get_agent_runtime(request: Request) -> AgentRuntime:
+    """Return the shared Agent Runtime stored on the FastAPI app."""
+    return request.app.state.agent_runtime
+
+
 def get_conversation_manager(request: Request) -> ConversationManager:
     """Return the shared conversation manager stored on the FastAPI app."""
     return request.app.state.conversation_manager
-
-
-def get_prompt_builder(request: Request) -> PromptBuilder:
-    """Return the shared prompt builder stored on the FastAPI app."""
-    return request.app.state.prompt_builder
 
 
 def get_detection_coordinator(request: Request) -> DetectionCoordinator:
@@ -74,41 +69,25 @@ def chat(
         ...,
         description="User message sent to the AI assistant.",
     ),
-    prompt_builder: PromptBuilder = Depends(get_prompt_builder),
+    agent_runtime: AgentRuntime = Depends(get_agent_runtime),
     conversation_manager: ConversationManager = Depends(get_conversation_manager),
     detection_coordinator: DetectionCoordinator = Depends(get_detection_coordinator),
 ) -> ChatResponse:
-    """Send a user message to Ollama and return the assistant response."""
-    logger.info("User message received: %s", request.message)
-    messages = conversation_manager.build_messages(prompt_builder, request.message)
+    """Send a user message through the Agent Runtime staged pipeline."""
+    logger.info("User message received via Chat API: %s", request.message)
 
-    try:
-        response_text = generate_chat_response(messages)
-    except (
-        OllamaTimeoutError,
-        OllamaConnectionError,
-        OllamaResponseError,
-        OllamaClientError,
-    ) as exc:
-        logger.warning(
-            "Falling back to a graceful response because Ollama failed: %s", exc
-        )
-        response_text = settings.FALLBACK_RESPONSE
-
-    conversation_manager.add_user_message(request.message)
-    conversation_manager.add_assistant_message(response_text)
-    conversation_manager.save_memory_if_important(request.message)
-    logger.info("Assistant response sent: %s", response_text)
+    agent_req = AgentRequest(user_prompt=request.message)
+    agent_resp = agent_runtime.process_request(agent_req)
 
     context = DetectionContext(
         user_prompt=request.message,
-        ai_response=response_text,
+        ai_response=agent_resp.response_text,
         conversation_history=conversation_manager.get_messages(),
     )
     report = detection_coordinator.run_detection(context)
 
     return ChatResponse(
-        response=response_text,
+        response=agent_resp.response_text,
         history=conversation_manager.get_messages(),
         detection=report,
     )
