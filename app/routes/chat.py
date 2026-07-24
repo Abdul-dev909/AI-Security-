@@ -1,20 +1,28 @@
 """Chat endpoint."""
 
 import logging
+from collections.abc import AsyncGenerator
 
-from fastapi import APIRouter, Body, Depends, Request, status
+from fastapi import APIRouter, Body, Depends, Request
+from fastapi.responses import StreamingResponse
 
 from app.agent import AgentRequest, AgentRuntime
 from app.conversation import ConversationManager
 from app.detection import DetectionCoordinator
 from app.detection.models import DetectionContext
+from app.ollama_client import generate_chat_response, generate_chat_response_async
 from app.schemas import ChatRequest, ChatResponse
 
-from app.ollama_client import generate_chat_response
+__all__ = [
+    "router",
+    "chat",
+    "chat_stream",
+    "generate_chat_response",
+    "generate_chat_response_async",
+]
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
 
 
 def get_agent_runtime(request: Request) -> AgentRuntime:
@@ -36,48 +44,22 @@ def get_detection_coordinator(request: Request) -> DetectionCoordinator:
     "/chat",
     response_model=ChatResponse,
     summary="Send a message to the local AI model",
-    description=(
-        "Send a chat message to the local Ollama server and receive the model's\n"
-        "reply. The route uses the prompt builder first, then sends the final\n"
-        "message list to the Ollama client.\n\n"
-        "Example request:\n"
-        '{"message": "Hello"}\n\n'
-        "Example response:\n"
-        '{"response": "Hello! How can I help you today?"}\n\n'
-        "Status codes:\n"
-        "200 OK, 422 Unprocessable Entity, 503 Service Unavailable"
-    ),
-    responses={
-        status.HTTP_200_OK: {
-            "description": "The assistant returned a chat response.",
-            "content": {
-                "application/json": {
-                    "example": {"response": "Hello! How can I help you today?"},
-                }
-            },
-        },
-        status.HTTP_422_UNPROCESSABLE_CONTENT: {
-            "description": "The request body failed validation.",
-        },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {
-            "description": "The local Ollama server is unavailable.",
-        },
-    },
+    description="Synchronous JSON response endpoint for backward compatibility.",
 )
-def chat(
-    request: ChatRequest = Body(
-        ...,
-        description="User message sent to the AI assistant.",
-    ),
+async def chat(
+    request: ChatRequest = Body(...),
     agent_runtime: AgentRuntime = Depends(get_agent_runtime),
     conversation_manager: ConversationManager = Depends(get_conversation_manager),
     detection_coordinator: DetectionCoordinator = Depends(get_detection_coordinator),
 ) -> ChatResponse:
-    """Send a user message through the Agent Runtime staged pipeline."""
+    """Send a user message through the Agent Runtime staged pipeline asynchronously."""
     logger.info("User message received via Chat API: %s", request.message)
 
-    agent_req = AgentRequest(user_prompt=request.message)
-    agent_resp = agent_runtime.process_request(agent_req)
+    agent_req = AgentRequest(
+        user_prompt=request.message,
+        session_id=getattr(request, "session_id", None) or "default-session",
+    )
+    agent_resp = await agent_runtime.process_request_async(agent_req)
 
     context = DetectionContext(
         user_prompt=request.message,
@@ -91,3 +73,28 @@ def chat(
         history=conversation_manager.get_messages(),
         detection=report,
     )
+
+
+@router.post(
+    "/chat/stream",
+    summary="Send a message and stream the response",
+    description="Streams Server-Sent Events (SSE) back to the client.",
+)
+async def chat_stream(
+    request: ChatRequest = Body(...),
+    agent_runtime: AgentRuntime = Depends(get_agent_runtime),
+) -> StreamingResponse:
+    """Stream a user message through the Agent Runtime staged pipeline."""
+    logger.info("User message received via Chat Stream API: %s", request.message)
+
+    agent_req = AgentRequest(
+        user_prompt=request.message,
+        session_id=getattr(request, "session_id", None) or "default-session",
+    )
+
+    async def sse_generator() -> AsyncGenerator[str, None]:
+        async for token in agent_runtime.process_request_stream_async(agent_req):
+            yield f"data: {token}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(sse_generator(), media_type="text/event-stream")

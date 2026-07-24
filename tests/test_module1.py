@@ -45,7 +45,9 @@ def test_health_endpoint(client: TestClient) -> None:
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "running"}
+    data = response.json()
+    assert data["status"] in ("running", "healthy", "degraded")
+    assert "components" in data
 
 
 def test_chat_success(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:

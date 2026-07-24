@@ -79,4 +79,29 @@ class DetectionCoordinator:
             report.highest_severity.name if report.highest_severity else "None",
         )
 
+        # Fire-and-forget telemetry push
+        try:
+            import app.main as _m
+            from app.telemetry import DetectionTelemetryEvent
+
+            tm = getattr(getattr(_m, "app", None), "state", None)
+            tel = getattr(tm, "telemetry_manager", None) if tm else None
+            if tel:
+                tel.record_detection(
+                    DetectionTelemetryEvent(
+                        request_id=getattr(context, "request_id", "unknown"),
+                        session_id=getattr(context, "session_id", "unknown"),
+                        total_detectors=report.total_detectors_executed,
+                        total_detections=report.total_detections,
+                        highest_severity=(
+                            report.highest_severity.name
+                            if report.highest_severity
+                            else None
+                        ),
+                        scan_latency_ms=round(report.detection_time * 1000, 3),
+                    )
+                )
+        except Exception:
+            pass
+
         return report

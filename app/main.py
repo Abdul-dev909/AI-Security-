@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections import OrderedDict
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -28,10 +29,26 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 
+class _LRUDict(OrderedDict):
+    """A simple LRU dict with bounded size."""
+
+    def __init__(self, maxsize: int = 100):
+        super().__init__()
+        self._maxsize = maxsize
+
+    def __setitem__(self, key, value):
+        if key in self:
+            self.move_to_end(key)
+        super().__setitem__(key, value)
+        if len(self) > self._maxsize:
+            self.popitem(last=False)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Create shared services before the app starts serving requests."""
 
+    # --- Core services ---
     memory_manager = MemoryManager()
     conversation_manager = ConversationManager(
         memory_manager=memory_manager,
@@ -46,6 +63,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.conversation_manager = conversation_manager
     app.state.prompt_builder = prompt_builder
 
+    # --- Telemetry ---
+    from app.telemetry import TelemetryManager
+
+    telemetry_manager = TelemetryManager(buffer_size=settings.TELEMETRY_BUFFER_SIZE)
+    app.state.telemetry_manager = telemetry_manager
+
+    # --- Debug store ---
+    if settings.DEBUG_MODE:
+        app.state.debug_store = _LRUDict(maxsize=settings.DEBUG_STORE_SIZE)
+        logger.warning(
+            "DEBUG_MODE is enabled — request internals will be captured in memory."
+        )
+    else:
+        app.state.debug_store = {}
+
+    # --- Detection ---
     registry = DetectorRegistry()
     from app.detection.detectors import (
         CanaryDetector,
@@ -60,8 +93,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     coordinator = DetectionCoordinator(registry=registry)
     app.state.detection_coordinator = coordinator
 
+    # --- Agent Runtime ---
     from app.agent import AgentRuntime
+    from app.knowledge import KnowledgeIndexer
     from app.tools import ToolManager
+
+    try:
+        indexer = KnowledgeIndexer()
+        indexer.check_and_index()
+    except Exception as e:
+        logger.error("Failed to initialize Knowledge Index: %s", e)
 
     tool_manager = ToolManager()
     agent_runtime = AgentRuntime(
@@ -73,6 +114,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.tool_manager = tool_manager
     app.state.agent_runtime = agent_runtime
 
+    # --- Attack Engine ---
     attack_registry = AttackRegistry()
     populate_registry(attack_registry)
     app.state.attack_registry = attack_registry
@@ -145,5 +187,10 @@ async def request_logging_middleware(request: Request, call_next) -> Response:
 
 register_error_handlers(app)
 
-# The router keeps endpoint definitions out of this file so startup stays small.
+# Core API routes
 app.include_router(router)
+
+# Admin routes
+from app.admin import router as admin_router  # noqa: E402
+
+app.include_router(admin_router, prefix="/admin")

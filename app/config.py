@@ -41,6 +41,10 @@ class Settings:
     MEMORY_LIMIT: int = 5
     REQUEST_TIMEOUT: float = 30.0
     LOG_LEVEL: str = "INFO"
+    DEBUG_MODE: bool = False
+    TELEMETRY_ENABLED: bool = True
+    TELEMETRY_BUFFER_SIZE: int = 500
+    DEBUG_STORE_SIZE: int = 100
     API_TITLE: str = "AI Agent"
     API_VERSION: str = "1.1.0"
     API_DESCRIPTION: str = (

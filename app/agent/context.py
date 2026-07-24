@@ -22,6 +22,7 @@ class AgentContext:
     user_prompt: str
     conversation_history: list[dict[str, str]] = field(default_factory=list)
     memories: list[str] = field(default_factory=list)
+    knowledge_context: Any | None = None
     available_tools: list[dict[str, str]] = field(default_factory=list)
     capability_resolution: CapabilityResolution | None = None
     tool_result: ToolInvocationResult | None = None

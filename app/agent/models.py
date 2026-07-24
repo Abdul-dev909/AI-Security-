@@ -111,3 +111,23 @@ class AgentResponse(BaseModel):
     stage_telemetry: list[StageExecutionMetadata] = Field(
         default_factory=list, description="Telemetry metadata for all pipeline stages."
     )
+
+
+class RuntimePerformanceEvent(BaseModel):
+    """Unified telemetry model capturing end-to-end performance across the Agent Runtime."""
+
+    request_id: str
+    session_id: str
+    request_start: str = Field(description="ISO timestamp of request start")
+    request_end: str = Field(description="ISO timestamp of request end")
+    total_latency_ms: float = 0.0
+    memory_latency_ms: float = 0.0
+    knowledge_latency_ms: float = 0.0
+    tool_latency_ms: float = 0.0
+    llm_latency_ms: float = 0.0
+    detection_latency_ms: float = 0.0
+    tokens_in: int = 0
+    tokens_out: int = 0
+    prompt_size: int = 0
+    streaming_enabled: bool = False
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
