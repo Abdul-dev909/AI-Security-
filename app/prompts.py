@@ -77,8 +77,9 @@ class PromptBuilder:
     ) -> list[dict[str, str]]:
         """Return the complete chat message list for Ollama.
 
-        The final order is system prompt, conversation history, relevant memories,
-        enterprise knowledge context, tool output (if present), and current user message.
+        The final order is system prompt, conversation history, relevant
+        memories, enterprise knowledge context, tool output (if present),
+        and current user message.
         """
 
         active_history = conversation_history
@@ -108,7 +109,10 @@ class PromptBuilder:
             final_messages.append(
                 {
                     "role": "system",
-                    "content": f"Retrieved Context from Environment Tool:\n{tool_output.strip()}",
+                    "content": (
+                        "Retrieved Context from Environment Tool:\n"
+                        f"{tool_output.strip()}"
+                    ),
                 }
             )
 

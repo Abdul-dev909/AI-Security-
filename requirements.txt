@@ -1,8 +1,15 @@
 fastapi>=0.111,<1.0
 uvicorn[standard]>=0.30,<1.0
 requests>=2.31,<3.0
-pytest>=8.2,<9.0
+pydantic>=2.0,<3.0
 httpx>=0.27,<1.0
+
+# Knowledge / RAG subsystem
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
+
+# Dev & QA tooling
+pytest>=8.2,<9.0
 ruff>=0.5.0
 black>=24.4.2
 isort>=5.13.2

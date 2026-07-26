@@ -2,6 +2,8 @@
 Detector for identifying leaked system prompts or instructions.
 """
 
+from typing import ClassVar
+
 from app.detection.base import BaseDetector
 from app.detection.models import DetectionContext, DetectionResult, DetectionSeverity
 
@@ -11,7 +13,7 @@ class PromptLeakageDetector(BaseDetector):
     Detects exposure of hidden prompts or internal instructions.
     """
 
-    LEAKAGE_KEYWORDS = [
+    LEAKAGE_KEYWORDS: ClassVar[list[str]] = [
         "you are chatgpt",
         "you are an ai assistant",
         "system prompt",
@@ -44,7 +46,10 @@ class PromptLeakageDetector(BaseDetector):
                 detected=True,
                 severity=DetectionSeverity.HIGH,
                 confidence=1.0,
-                explanation=f"Found potential prompt leakage keywords: {', '.join(found_keywords)}",
+                explanation=(
+                    f"Found potential prompt leakage keywords: "
+                    f"{', '.join(found_keywords)}"
+                ),
                 evidence=found_keywords,
             )
 

@@ -10,7 +10,9 @@ from app.tools.security import get_relative_sandbox_path, validate_sandbox_path
 
 
 class GrepTool(BaseTool):
-    """Tool to search text files safely for simple keyword matches within the sandbox."""
+    """Tool to search text files safely for simple keyword matches within the
+    sandbox.
+    """
 
     @property
     def name(self) -> str:
@@ -18,7 +20,10 @@ class GrepTool(BaseTool):
 
     @property
     def description(self) -> str:
-        return "Searches text files within a sandbox directory for a target keyword string."
+        return (
+            "Searches text files within a sandbox directory for a target "
+            "keyword string."
+        )
 
     @property
     def parameters_schema(self) -> dict[str, Any]:
@@ -31,12 +36,17 @@ class GrepTool(BaseTool):
                 },
                 "path": {
                     "type": "string",
-                    "description": "Relative sandbox path (file or directory) to search within. Defaults to root ('.').",
+                    "description": (
+                        "Relative sandbox path (file or directory) to search "
+                        "within. Defaults to root ('.')."
+                    ),
                     "default": ".",
                 },
                 "case_sensitive": {
                     "type": "boolean",
-                    "description": "Whether search should be case-sensitive. Defaults to false.",
+                    "description": (
+                        "Whether search should be case-sensitive. Defaults " "to false."
+                    ),
                     "default": False,
                 },
             },

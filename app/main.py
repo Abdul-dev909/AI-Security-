@@ -19,7 +19,7 @@ from app.conversation import ConversationManager
 from app.detection import DetectionCoordinator, DetectorRegistry
 from app.error_handlers import register_error_handlers
 from app.logging_utils import setup_logging
-from app.memory_manager import MemoryManager
+from app.memory.manager import EnterpriseMemoryManager
 from app.prompts import PromptBuilder
 from app.routes import router
 from app.utils import execution_timer
@@ -49,9 +49,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Create shared services before the app starts serving requests."""
 
     # --- Core services ---
-    memory_manager = MemoryManager()
+    enterprise_memory_manager = EnterpriseMemoryManager()
     conversation_manager = ConversationManager(
-        memory_manager=memory_manager,
         max_history=settings.MAX_HISTORY,
     )
     prompt_builder = PromptBuilder(
@@ -59,7 +58,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         conversation_manager=conversation_manager,
     )
 
-    app.state.memory_manager = memory_manager
+    app.state.memory_manager = enterprise_memory_manager
     app.state.conversation_manager = conversation_manager
     app.state.prompt_builder = prompt_builder
 
@@ -95,7 +94,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     # --- Agent Runtime ---
     from app.agent import AgentRuntime
-    from app.knowledge import KnowledgeIndexer
+    from app.knowledge import KnowledgeIndexer, KnowledgeRetriever
     from app.tools import ToolManager
 
     try:
@@ -104,12 +103,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     except Exception as e:
         logger.error("Failed to initialize Knowledge Index: %s", e)
 
+    knowledge_retriever = KnowledgeRetriever()
+
     tool_manager = ToolManager()
     agent_runtime = AgentRuntime(
         conversation_manager=conversation_manager,
         prompt_builder=prompt_builder,
         detection_coordinator=coordinator,
         tool_manager=tool_manager,
+        memory_manager=enterprise_memory_manager,
+        knowledge_retriever=knowledge_retriever,
+        telemetry_manager=telemetry_manager,
     )
     app.state.tool_manager = tool_manager
     app.state.agent_runtime = agent_runtime

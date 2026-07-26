@@ -27,7 +27,9 @@ def get_attack_engine(request: Request) -> AttackEngine:
     "/api/attacks",
     response_model=list[Attack],
     summary="List all registered attacks",
-    description="Returns all adversarial attacks currently available in the system registry.",
+    description=(
+        "Returns all adversarial attacks currently available in the system " "registry."
+    ),
 )
 def list_attacks(
     registry: AttackRegistry = Depends(get_attack_registry),
@@ -39,7 +41,10 @@ def list_attacks(
 @router.post(
     "/api/attacks/run",
     summary="Run a single attack by ID",
-    description="Locates the specified attack in the registry and executes it via the AttackEngine.",
+    description=(
+        "Locates the specified attack in the registry and executes it via the "
+        "AttackEngine."
+    ),
 )
 def run_attack(
     request: RunAttackRequest = Body(...),

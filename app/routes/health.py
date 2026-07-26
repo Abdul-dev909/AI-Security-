@@ -37,7 +37,9 @@ def _probe(name: str, fn) -> dict[str, Any]:
     description="Returns overall status and per-subsystem health probes.",
     responses={
         status.HTTP_200_OK: {
-            "description": "Platform is running (individual components may be degraded)."
+            "description": (
+                "Platform is running (individual components may be degraded)."
+            )
         },
     },
 )

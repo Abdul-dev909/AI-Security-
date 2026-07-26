@@ -25,6 +25,7 @@ class EnterpriseMemoryManager:
         # Backward compatibility for tests that monkeypatch conversation module
         import app.conversation
 
+        # TODO(Module2): Remove this backward compatibility hook
         if app.conversation.is_important(content):
             score = 1.0
 

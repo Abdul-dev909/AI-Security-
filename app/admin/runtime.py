@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 
 from fastapi import APIRouter, Depends, Request
@@ -38,10 +39,8 @@ def get_runtime_status(
     memory_manager = getattr(request.app.state, "memory_manager", None)
     active_sessions = 0
     if memory_manager and hasattr(memory_manager, "session_manager"):
-        try:
+        with contextlib.suppress(Exception):
             active_sessions = len(memory_manager.session_manager.list_sessions())
-        except Exception:
-            pass
 
     telemetry_manager = getattr(request.app.state, "telemetry_manager", None)
     total_requests = 0
@@ -49,8 +48,12 @@ def get_runtime_status(
     if telemetry_manager:
         events = telemetry_manager.get_runtime_events(limit=500)
         total_requests = len(
-            telemetry_manager._buffers.buffer("runtime").stats().get("total_pushed", 0)
-            and events
+            (
+                telemetry_manager._buffers.buffer("runtime")
+                .stats()
+                .get("total_pushed", 0)
+                and events
+            )
             or events
         )
         total_requests = telemetry_manager._buffers.buffer("runtime").stats()[

@@ -55,10 +55,14 @@ class DocumentLoader:
         # Try to extract file creation/mod times
         try:
             stat = file_path.stat()
-            created_at = datetime.datetime.fromtimestamp(stat.st_ctime)
-            updated_at = datetime.datetime.fromtimestamp(stat.st_mtime)
+            created_at = datetime.datetime.fromtimestamp(
+                stat.st_ctime, tz=datetime.timezone.utc
+            )
+            updated_at = datetime.datetime.fromtimestamp(
+                stat.st_mtime, tz=datetime.timezone.utc
+            )
         except Exception:
-            created_at = datetime.datetime.utcnow()
+            created_at = datetime.datetime.now(datetime.timezone.utc)
             updated_at = created_at
 
         meta = EnterpriseMetadata(

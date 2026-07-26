@@ -35,7 +35,9 @@ def test_importance_engine():
 
 
 def test_enterprise_memory_flow():
-    """Test end-to-end memory management flow using a temporary in-memory SQLite setup if possible."""
+    """Test end-to-end memory management flow using a temporary in-memory SQLite
+    setup if possible.
+    """
     # We will mock the SQLite storage path to :memory: for tests
     from app.memory.storage import MemoryStorage
 

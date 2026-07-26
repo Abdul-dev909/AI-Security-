@@ -12,15 +12,15 @@ from app.telemetry.models import (
 )
 
 __all__ = [
-    "TelemetryManager",
+    "DetectionTelemetryEvent",
+    "JsonFileExporter",
+    "KnowledgeTelemetryEvent",
+    "MemoryTelemetryEvent",
+    "NullExporter",
+    "RuntimeTelemetryEvent",
     "TelemetryBuffer",
     "TelemetryBufferSet",
     "TelemetryExporter",
-    "JsonFileExporter",
-    "NullExporter",
-    "RuntimeTelemetryEvent",
-    "MemoryTelemetryEvent",
-    "KnowledgeTelemetryEvent",
+    "TelemetryManager",
     "ToolTelemetryEvent",
-    "DetectionTelemetryEvent",
 ]

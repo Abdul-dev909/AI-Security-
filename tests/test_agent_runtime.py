@@ -79,10 +79,12 @@ class TestAgentRuntimeStagedPipeline:
     """Tests for the end-to-end AgentRuntime pipeline execution and stage telemetry."""
 
     def setup_method(self) -> None:
-        self.memory_manager = MemoryManager()
-        self.conversation_manager = ConversationManager(
-            memory_manager=self.memory_manager
-        )
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            self.memory_manager = MemoryManager()
+        self.conversation_manager = ConversationManager()
         self.prompt_builder = PromptBuilder(
             system_prompt=settings.SYSTEM_PROMPT,
             conversation_manager=self.conversation_manager,

@@ -1,3 +1,4 @@
+import contextlib
 import json
 import logging
 import sqlite3
@@ -9,7 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class MemoryStorage:
-    """Manages persistent memory records in SQLite, strictly partitioned by session_id."""
+    """Manages persistent memory records in SQLite, strictly partitioned by
+    session_id.
+    """
 
     def __init__(self, db_path: str | None = None):
         self.db_path = str(db_path or getattr(settings, "MEMORY_DB_PATH", "memory.db"))
@@ -37,7 +40,8 @@ class MemoryStorage:
             )
             # Create an index on session_id for fast isolated retrieval
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_session_id ON enterprise_memories (session_id)"
+                "CREATE INDEX IF NOT EXISTS idx_session_id "
+                "ON enterprise_memories (session_id)"
             )
             conn.commit()
 
@@ -93,10 +97,8 @@ class MemoryStorage:
         records = []
         for row in rows:
             meta = {}
-            try:
+            with contextlib.suppress(Exception):
                 meta = json.loads(row["metadata"])
-            except Exception:
-                pass
 
             records.append(
                 MemoryRecord(
@@ -104,6 +106,7 @@ class MemoryStorage:
                     session_id=row["session_id"],
                     content=row["content"],
                     importance_score=row["importance_score"],
+                    created_at=row["created_at"],
                     metadata=meta,
                 )
             )
@@ -146,16 +149,15 @@ class MemoryStorage:
         records = []
         for row in rows:
             meta = {}
-            try:
+            with contextlib.suppress(Exception):
                 meta = json.loads(row["metadata"])
-            except Exception:
-                pass
             records.append(
                 MemoryRecord(
                     memory_id=row["memory_id"],
                     session_id=row["session_id"],
                     content=row["content"],
                     importance_score=row["importance_score"],
+                    created_at=row["created_at"],
                     metadata=meta,
                 )
             )
@@ -183,6 +185,7 @@ class MemoryStorage:
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT session_id, COUNT(*) as cnt FROM enterprise_memories GROUP BY session_id"
+                "SELECT session_id, COUNT(*) as cnt FROM enterprise_memories "
+                "GROUP BY session_id"
             )
             return {row["session_id"]: row["cnt"] for row in cursor.fetchall()}

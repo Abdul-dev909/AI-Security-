@@ -159,7 +159,7 @@ class TestAttackExecutor:
     @pytest.fixture()
     def executor(self, memory_manager: MemoryManager) -> AttackExecutor:
         """Provide an AttackExecutor instance."""
-        conversation_manager = ConversationManager(memory_manager=memory_manager)
+        conversation_manager = ConversationManager()
         prompt_builder = PromptBuilder(
             system_prompt="System instructions",
             conversation_manager=conversation_manager,
@@ -305,7 +305,7 @@ class TestAttackEngine:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Engine should execute only enabled attacks and aggregate results."""
-        conversation_manager = ConversationManager(memory_manager=memory_manager)
+        conversation_manager = ConversationManager()
         prompt_builder = PromptBuilder(
             system_prompt="System instructions",
             conversation_manager=conversation_manager,

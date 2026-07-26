@@ -19,7 +19,8 @@ class MemoryRetriever:
         with execution_timer() as timer:
             # For simplicity, we fetch recent/important memories for the session
             # and then perform in-memory keyword scoring.
-            # In a production environment, this could be a vector search or FTS in SQLite.
+            # In a production environment, this could be a vector search or FTS
+            # in SQLite.
             all_memories = self.storage.get_memories_by_session(session_id, limit=50)
 
             scored_memories = []
@@ -37,7 +38,7 @@ class MemoryRetriever:
 
                 # Recency boost (newer = higher score)
                 age_seconds = (
-                    datetime.datetime.utcnow() - record.created_at
+                    datetime.datetime.now(datetime.timezone.utc) - record.created_at
                 ).total_seconds()
                 # Exponential decay for recency
                 recency_boost = max(0, 0.5 * (0.99 ** (age_seconds / 60.0)))

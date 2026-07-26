@@ -44,7 +44,9 @@ def _get_vector_count() -> int:
 
 
 def _get_document_chunks() -> tuple[list[Any], list[Any]]:
-    """Return cached chunks from the indexer's loader + chunker pipeline (no embeddings)."""
+    """Return cached chunks from the indexer's loader + chunker pipeline
+    (no embeddings).
+    """
     try:
         from app.knowledge.chunker import DocumentChunker
         from app.knowledge.loader import DocumentLoader
@@ -208,7 +210,10 @@ def get_index_status(
 def trigger_reindex(
     _admin: None = Depends(get_admin_dependency),
 ) -> dict:
-    """Trigger KnowledgeIndexer.check_and_index(). Returns immediately; indexing is synchronous."""
+    """Trigger KnowledgeIndexer.check_and_index().
+
+    Returns immediately; indexing is synchronous.
+    """
     try:
         from app.knowledge.indexer import KnowledgeIndexer
 

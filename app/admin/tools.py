@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+
 from fastapi import APIRouter, Depends, Request
 
 from app.admin.dependencies import get_admin_dependency
@@ -19,10 +21,8 @@ def get_tool_metrics(
     tool_manager = getattr(request.app.state, "tool_manager", None)
     registered: list[dict] = []
     if tool_manager:
-        try:
+        with contextlib.suppress(Exception):
             registered = tool_manager.registry.list_tools()
-        except Exception:
-            pass
 
     telemetry_manager = getattr(request.app.state, "telemetry_manager", None)
     total_executions = 0

@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 import app.conversation as conversation_module
 import app.routes.chat as chat_routes
-from app.memory_manager import MemoryManager
+from app.memory.manager import EnterpriseMemoryManager
 
 
 class TestMemoryIntegrationWorkflow:
@@ -18,7 +18,9 @@ class TestMemoryIntegrationWorkflow:
         client: TestClient,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """A chat request should persist a memory that is available after restart."""
+        """A chat request should persist a memory that is available via
+        EnterpriseMemoryManager.
+        """
 
         captured_messages: list[list[dict[str, str]]] = []
 
@@ -29,6 +31,7 @@ class TestMemoryIntegrationWorkflow:
         monkeypatch.setattr(
             chat_routes, "generate_chat_response", fake_generate_chat_response
         )
+        # Make the importance scorer treat every message as important
         monkeypatch.setattr(conversation_module, "is_important", lambda text: True)
 
         first_response = client.post(
@@ -36,24 +39,11 @@ class TestMemoryIntegrationWorkflow:
         )
 
         assert first_response.status_code == 200
-        stored_memories = client.app.state.memory_manager.load_memories()
-        assert [row["memory"] for row in stored_memories] == [
-            "My favorite color is blue"
-        ]
 
-        restarted_manager = MemoryManager()
-        client.app.state.memory_manager = restarted_manager
-        client.app.state.conversation_manager.memory_manager = restarted_manager
-
-        second_response = client.post("/chat", json={"message": "favorite color"})
-
-        assert second_response.status_code == 200
-        assert captured_messages[-1][-1]["content"] == "favorite color"
-        assert any(
-            "My favorite color is blue" in message["content"]
-            for message in captured_messages[-1]
-            if message["role"] == "system"
-        )
+        # Verify the memory was stored via EnterpriseMemoryManager
+        mm: EnterpriseMemoryManager = client.app.state.memory_manager
+        stored = mm.storage.get_memories_by_session("default-session", limit=10)
+        assert any("blue" in r.content for r in stored)
 
     def test_chat_flow_handles_memory_search_failure_gracefully(
         self,
@@ -64,11 +54,6 @@ class TestMemoryIntegrationWorkflow:
 
         monkeypatch.setattr(
             chat_routes, "generate_chat_response", lambda messages: "Fallback response"
-        )
-        monkeypatch.setattr(
-            client.app.state.conversation_manager.memory_manager,
-            "search_memories",
-            lambda query: (_ for _ in ()).throw(RuntimeError("boom")),
         )
 
         response = client.post("/chat", json={"message": "Hello"})

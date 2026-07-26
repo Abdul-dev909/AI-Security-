@@ -28,7 +28,8 @@ def get_debug_snapshot(
     if not settings.DEBUG_MODE:
         raise HTTPException(
             status_code=403,
-            detail="Debug mode is disabled. Set DEBUG_MODE=true to enable request inspection.",
+            detail="Debug mode is disabled. "
+            "Set DEBUG_MODE=true to enable request inspection.",
         )
 
     debug_store: dict = getattr(request.app.state, "debug_store", {})

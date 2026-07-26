@@ -77,8 +77,7 @@ def test_run_attack_success(
     )
 
     response = client.post(
-        "/api/attacks/run", 
-        json={"attack_id": "prompt-injection-01"}
+        "/api/attacks/run", json={"attack_id": "prompt-injection-01"}
     )
     assert response.status_code == 200
     data = response.json()

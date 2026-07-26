@@ -2,6 +2,8 @@
 Detector for identifying likely safety bypasses and jailbreaks.
 """
 
+from typing import ClassVar
+
 from app.detection.base import BaseDetector
 from app.detection.models import DetectionContext, DetectionResult, DetectionSeverity
 
@@ -11,7 +13,7 @@ class JailbreakDetector(BaseDetector):
     Rule-based detector that identifies likely safety bypasses.
     """
 
-    REFUSAL_PHRASES = [
+    REFUSAL_PHRASES: ClassVar[list[str]] = [
         "i can't help",
         "i cannot assist",
         "i'm unable to",
@@ -19,7 +21,7 @@ class JailbreakDetector(BaseDetector):
         "i won't provide",
     ]
 
-    DANGEROUS_KEYWORDS = [
+    DANGEROUS_KEYWORDS: ClassVar[list[str]] = [
         "exploit",
         "malware",
         "payload",
@@ -46,7 +48,9 @@ class JailbreakDetector(BaseDetector):
         ]
 
         found_dangerous = [
-            keyword for keyword in self.DANGEROUS_KEYWORDS if keyword in ai_response_lower
+            keyword
+            for keyword in self.DANGEROUS_KEYWORDS
+            if keyword in ai_response_lower
         ]
 
         if found_dangerous and not found_refusals:
@@ -55,7 +59,10 @@ class JailbreakDetector(BaseDetector):
                 detected=True,
                 severity=DetectionSeverity.HIGH,
                 confidence=0.8,
-                explanation=f"Found dangerous content without typical refusal. Keywords: {', '.join(found_dangerous)}",
+                explanation=(
+                    f"Found dangerous content without typical refusal. "
+                    f"Keywords: {', '.join(found_dangerous)}"
+                ),
                 evidence=found_dangerous,
             )
 

@@ -80,7 +80,8 @@ async def generate_chat_response_async(messages: list[dict[str, Any]]) -> str:
                     and model_name != model_candidates[-1]
                 ):
                     logger.warning(
-                        "Ollama model '%s' was not found. Trying the next configured model.",
+                        "Ollama model '%s' was not found. Trying the next "
+                        "configured model.",
                         model_name,
                     )
                     continue
@@ -130,7 +131,8 @@ async def generate_chat_stream_async(
             raise OllamaConnectionError("Streaming from Ollama failed.") from exc
 
 
-# Keep the synchronous implementation for backward compatibility if any non-FastAPI worker threads use it
+# Keep the synchronous implementation for backward compatibility if any
+# non-FastAPI worker threads use it
 def generate_chat_response(messages: list[dict[str, Any]]) -> str:
     import asyncio
 
@@ -142,7 +144,8 @@ def generate_chat_response(messages: list[dict[str, Any]]) -> str:
     if loop and loop.is_running():
         # If we are already in an event loop (e.g. FastAPI blocking thread),
         # we shouldn't use asyncio.run. We can just use requests like before,
-        # but the prompt told us to "Replace synchronous HTTP requests with an asynchronous implementation"
+        # but the prompt told us to "Replace synchronous HTTP requests with an
+        # asynchronous implementation"
         # and "Avoid blocking FastAPI worker threads."
         # If we reach here, we shouldn't be running sync.
         import requests

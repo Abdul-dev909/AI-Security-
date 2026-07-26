@@ -2,41 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 from fastapi.testclient import TestClient
 
-import app.database as database
 import app.routes.chat as chat_routes
 from app.config import settings
 from app.conversation import ConversationManager
-from app.main import app
 from app.memory_manager import MemoryManager
 from app.ollama_client import OllamaConnectionError, OllamaTimeoutError
 from app.prompts import PromptBuilder
-
-
-@pytest.fixture()
-def memory_manager(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> MemoryManager:
-    """Create a temporary database-backed MemoryManager for tests."""
-
-    test_database_path = tmp_path / "memory.db"
-    monkeypatch.setattr(database, "DB_PATH", test_database_path)
-    database.initialize_database()
-    return MemoryManager()
-
-
-@pytest.fixture()
-def client(memory_manager: MemoryManager) -> TestClient:
-    """Create a fresh test client and clear conversation history."""
-
-    with TestClient(app) as test_client:
-        test_client.app.state.memory_manager = memory_manager
-        test_client.app.state.conversation_manager.memory_manager = memory_manager
-        test_client.app.state.conversation_manager.clear_history()
-        yield test_client
-        test_client.app.state.conversation_manager.clear_history()
 
 
 def test_health_endpoint(client: TestClient) -> None:
@@ -135,7 +109,7 @@ def test_conversation_manager_keeps_latest_messages(
 ) -> None:
     """ConversationManager should store only the newest messages."""
 
-    manager = ConversationManager(memory_manager=memory_manager, max_history=3)
+    manager = ConversationManager(max_history=3)
     manager.add_user_message("First")
     manager.add_assistant_message("Second")
     manager.add_user_message("Third")
@@ -151,7 +125,7 @@ def test_conversation_manager_keeps_latest_messages(
 def test_conversation_manager_clear_history(memory_manager: MemoryManager) -> None:
     """clear_history should remove all stored messages."""
 
-    manager = ConversationManager(memory_manager=memory_manager, max_history=5)
+    manager = ConversationManager(max_history=5)
     manager.add_user_message("Hello")
     manager.add_assistant_message("Hi")
 
@@ -165,7 +139,7 @@ def test_prompt_builder_uses_system_prompt_and_history(
 ) -> None:
     """PromptBuilder should combine the system prompt, history, and new message."""
 
-    manager = ConversationManager(memory_manager=memory_manager, max_history=5)
+    manager = ConversationManager(max_history=5)
     manager.add_user_message("Earlier question")
     manager.add_assistant_message("Earlier answer")
 

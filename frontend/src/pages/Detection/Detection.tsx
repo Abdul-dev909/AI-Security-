@@ -23,57 +23,57 @@ export function Detection() {
   const location = useLocation();
   const navigate = useNavigate();
   const execId = searchParams.get('exec');
-  
+
   const execution = execId ? getExecution(execId) : null;
   const report = execution?.result.detection_report || location.state?.report;
   const attackName = execution?.attack.name || location.state?.attackName || 'Unknown Attack';
   const timestamp = execution?.timestamp ? new Date(execution.timestamp).toLocaleString() : 'Never';
 
   const detectionMetrics = [
-    { 
-      id: 'threats', 
-      icon: 'ShieldAlert', 
-      title: 'Threats Detected', 
-      value: report ? report.total_detections.toString() : '0', 
-      status: report && report.total_detections > 0 ? 'failed' : 'inactive', 
-      statusLabel: report && report.total_detections > 0 ? 'Detections Found' : 'None' 
+    {
+      id: 'threats',
+      icon: 'ShieldAlert',
+      title: 'Threats Detected',
+      value: report ? report.total_detections.toString() : '0',
+      status: report && report.total_detections > 0 ? 'failed' : 'inactive',
+      statusLabel: report && report.total_detections > 0 ? 'Detections Found' : 'None'
     },
-    { 
-      id: 'last-scan', 
-      icon: 'Clock', 
-      title: 'Last Scan', 
-      value: report ? timestamp : 'Never', 
-      status: report ? 'success' : 'inactive', 
-      statusLabel: report ? 'Completed' : 'Pending' 
+    {
+      id: 'last-scan',
+      icon: 'Clock',
+      title: 'Last Scan',
+      value: report ? timestamp : 'Never',
+      status: report ? 'success' : 'inactive',
+      statusLabel: report ? 'Completed' : 'Pending'
     },
-    { 
-      id: 'engine', 
-      icon: 'Cpu', 
-      title: 'Detection Engine', 
-      value: report ? `${report.detection_time.toFixed(2)}s` : 'Standby', 
-      status: report ? 'online' : 'placeholder', 
-      statusLabel: report ? 'Active' : 'Ready' 
+    {
+      id: 'engine',
+      icon: 'Cpu',
+      title: 'Detection Engine',
+      value: report ? `${report.detection_time.toFixed(2)}s` : 'Standby',
+      status: report ? 'online' : 'placeholder',
+      statusLabel: report ? 'Active' : 'Ready'
     },
-    { 
-      id: 'model', 
-      icon: 'Brain', 
-      title: 'Model Status', 
-      value: 'Loaded', 
-      status: 'online', 
-      statusLabel: 'Active' 
+    {
+      id: 'model',
+      icon: 'Brain',
+      title: 'Model Status',
+      value: 'Loaded',
+      status: 'online',
+      statusLabel: 'Active'
     },
   ];
 
   const resultsColumns = [
     { key: 'detector_name', header: 'Detector', width: '200px' },
-    { 
-      key: 'detected', 
-      header: 'Detected', 
+    {
+      key: 'detected',
+      header: 'Detected',
       width: '120px',
       render: (row: DetectionResultItem) => (
-        <StatusBadge 
-          variant={row.detected ? 'failed' : 'inactive'} 
-          label={row.detected ? 'Yes' : 'No'} 
+        <StatusBadge
+          variant={row.detected ? 'failed' : 'inactive'}
+          label={row.detected ? 'Yes' : 'No'}
         />
       )
     },
@@ -87,9 +87,9 @@ export function Detection() {
         return <StatusBadge variant={sevConfig.variant} label={sevConfig.label} />;
       }
     },
-    { 
-      key: 'confidence', 
-      header: 'Confidence', 
+    {
+      key: 'confidence',
+      header: 'Confidence',
       width: '120px',
       render: (row: DetectionResultItem) => `${(row.confidence * 100).toFixed(0)}%`
     },

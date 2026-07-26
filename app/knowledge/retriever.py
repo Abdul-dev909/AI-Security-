@@ -47,7 +47,7 @@ class KnowledgeRetriever:
             retrieval_method="similarity_search",
             embedding_model=self.embeddings.model_name,
             vector_database="chromadb",
-            timestamp=datetime.datetime.utcnow(),
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
             security_metadata={
                 "query_length": len(query),
                 "results_count": len(chunks),

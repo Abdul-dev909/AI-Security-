@@ -62,7 +62,7 @@ def probe_chromadb() -> ComponentHealth:
 
             return {"client": "available"}
         except ImportError:
-            raise RuntimeError("chromadb is not installed")
+            raise RuntimeError("chromadb is not installed") from None
 
     return _probe("chromadb", _check)
 
@@ -74,7 +74,7 @@ def probe_embeddings() -> ComponentHealth:
 
             return {"model": "sentence-transformers available"}
         except ImportError:
-            raise RuntimeError("sentence-transformers is not installed")
+            raise RuntimeError("sentence-transformers is not installed") from None
 
     return _probe("embedding_model", _check)
 

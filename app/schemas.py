@@ -118,12 +118,8 @@ class RunAllAttacksResponse(BaseModel):
     total_attacks: int = Field(
         description="Total number of enabled attacks that were executed."
     )
-    completed: int = Field(
-        description="Number of attacks that executed successfully."
-    )
-    failed: int = Field(
-        description="Number of attacks that failed to execute."
-    )
+    completed: int = Field(description="Number of attacks that executed successfully.")
+    failed: int = Field(description="Number of attacks that failed to execute.")
     results: list[AttackResult] = Field(
         default_factory=list, description="Detailed results for each executed attack."
     )

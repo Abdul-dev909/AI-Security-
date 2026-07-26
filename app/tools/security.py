@@ -1,4 +1,6 @@
-"""Security validator enforcing strict sandbox root boundaries for tool file operations."""
+"""Security validator enforcing strict sandbox root boundaries for tool file
+operations.
+"""
 
 from __future__ import annotations
 
@@ -61,27 +63,30 @@ def validate_sandbox_path(user_path: str | Path) -> Path:
         common = Path(get_sandbox_root()).resolve()
         # Verify that resolved_path is relative to root
         resolved_path.relative_to(common)
-    except ValueError:
+    except ValueError as err:
         raise ToolSecurityError(
-            f"Security Violation: Directory traversal detected for path '{raw_path_str}'. "
-            "Access outside sandbox/ is strictly prohibited."
-        )
+            f"Security Violation: Directory traversal detected for path "
+            f"'{raw_path_str}'. Access outside sandbox/ is strictly prohibited."
+        ) from err
 
     # Check symlink safety if target exists
     if resolved_path.is_symlink():
         real_target = resolved_path.readlink().resolve()
         try:
             real_target.relative_to(common)
-        except ValueError:
+        except ValueError as err:
             raise ToolSecurityError(
-                f"Security Violation: Symbolic link '{raw_path_str}' points outside sandbox root."
-            )
+                f"Security Violation: Symbolic link '{raw_path_str}' "
+                "points outside sandbox root."
+            ) from err
 
     return resolved_path
 
 
 def get_relative_sandbox_path(absolute_path: Path) -> str:
-    """Return a clean string representation of absolute_path relative to sandbox root."""
+    """Return a clean string representation of absolute_path relative to
+    sandbox root.
+    """
     root = get_sandbox_root()
     try:
         rel = absolute_path.resolve().relative_to(root)
@@ -108,10 +113,12 @@ def validate_text_file(resolved_path: Path) -> None:
             chunk = f.read(1024)
             if b"\x00" in chunk:
                 raise ToolSecurityError(
-                    f"Security Violation: Cannot read binary file '{get_relative_sandbox_path(resolved_path)}'."
+                    f"Security Violation: Cannot read binary file "
+                    f"'{get_relative_sandbox_path(resolved_path)}'."
                 )
             chunk.decode("utf-8")
-    except UnicodeDecodeError:
+    except UnicodeDecodeError as err:
         raise ToolSecurityError(
-            f"Security Violation: File '{get_relative_sandbox_path(resolved_path)}' is not valid UTF-8 text."
-        )
+            f"Security Violation: File '{get_relative_sandbox_path(resolved_path)}' "
+            "is not valid UTF-8 text."
+        ) from err

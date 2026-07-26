@@ -62,17 +62,18 @@ class AttackExecutor:
         with execution_timer() as elapsed:
             try:
                 # 1. Build messages using the prompt builder and the attack prompt
-                messages = self.conversation_manager.build_messages(
-                    self.prompt_builder, attack.prompt
+                messages = self.prompt_builder.build_messages(
+                    user_message=attack.prompt,
+                    memories=[],
+                    conversation_history=self.conversation_manager.get_messages(),
                 )
 
                 # 2. Call the existing AI agent via generate_chat_response
                 response = generate_chat_response(messages)
 
-                # 3. Update the conversation history and save memories if important
+                # 3. Update the conversation history
                 self.conversation_manager.add_user_message(attack.prompt)
                 self.conversation_manager.add_assistant_message(response)
-                self.conversation_manager.save_memory_if_important(attack.prompt)
 
                 execution_success = True
             except Exception as exc:

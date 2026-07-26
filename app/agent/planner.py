@@ -7,7 +7,9 @@ from app.agent.models import CapabilityResolution
 
 
 class AgentPlanner:
-    """Planner layer for evaluating complex multi-step capability plans in future milestones."""
+    """Planner layer for evaluating complex multi-step capability plans
+    in future milestones.
+    """
 
     def plan(
         self, context: AgentContext, resolution: CapabilityResolution

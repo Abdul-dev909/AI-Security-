@@ -27,13 +27,13 @@ export function AttackEngine() {
   const navigate = useNavigate();
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const [attacks, setAttacks] = useState<Attack[]>([]);
   const [loading, setLoading] = useState(true);
   const [runningAttacks, setRunningAttacks] = useState<Set<string>>(new Set());
   const [resultsMap, setResultsMap] = useState<Map<string, AttackResult>>(new Map());
   const [executions, setExecutions] = useState<ExecutionEntry[]>([]);
-  
+
   const [summary, setSummary] = useState({
     total: 0,
     completed: 0,
@@ -52,7 +52,7 @@ export function AttackEngine() {
       console.error(err);
       if (isMounted) setLoading(false);
     });
-    
+
     setExecutions(getAllExecutions());
   }, []);
 
@@ -61,13 +61,13 @@ export function AttackEngine() {
       let completed = prev.completed;
       let failed = prev.failed;
       let criticalDetections = prev.criticalDetections;
-      
+
       results.forEach(r => {
         if (r.execution_success) completed++;
         else failed++;
         if (r.detection_report?.highest_severity === 'critical') criticalDetections++;
       });
-      
+
       return {
         total: prev.total + results.length,
         completed,
@@ -79,7 +79,7 @@ export function AttackEngine() {
 
   const handleRunAttackGroup = async (group: any) => {
     setRunningAttacks(prev => new Set(prev).add(group.baseName));
-    
+
     try {
       for (const attack of group.variants) {
         try {
@@ -117,10 +117,10 @@ export function AttackEngine() {
   const handleRunAll = async () => {
     const enabledAttacks = attacks.filter(a => a.enabled);
     setRunningAttacks(new Set(['all_running']));
-    
+
     try {
       const response = await runAllAttacks();
-      
+
       const newResults = new Map(resultsMap);
       response.results.forEach((r: AttackResult) => {
         newResults.set(r.attack_id, r);
@@ -129,7 +129,7 @@ export function AttackEngine() {
           addExecution(attackDef, r);
         }
       });
-      
+
       setResultsMap(newResults);
       setExecutions(getAllExecutions());
       updateSummary(response.results);
@@ -169,14 +169,14 @@ export function AttackEngine() {
   });
 
   const historyColumns = [
-    { 
-      key: 'timestamp', 
-      header: 'Time', 
+    {
+      key: 'timestamp',
+      header: 'Time',
       width: '160px',
       render: (row: ExecutionEntry) => new Date(row.timestamp).toLocaleTimeString()
     },
-    { 
-      key: 'attackName', 
+    {
+      key: 'attackName',
       header: 'Attack',
       render: (row: ExecutionEntry) => row.attack.name
     },
@@ -195,14 +195,14 @@ export function AttackEngine() {
       header: 'Status',
       width: '120px',
       render: (row: ExecutionEntry) => (
-        <StatusBadge 
-          variant={row.result.execution_success ? 'success' : 'failed'} 
-          label={row.result.execution_success ? 'Success' : 'Failed'} 
+        <StatusBadge
+          variant={row.result.execution_success ? 'success' : 'failed'}
+          label={row.result.execution_success ? 'Success' : 'Failed'}
         />
       ),
     },
-    { 
-      key: 'result', 
+    {
+      key: 'result',
       header: 'Detections',
       render: (row: ExecutionEntry) => `${row.result.detection_report?.total_detections || 0} hits`
     },
@@ -211,8 +211,8 @@ export function AttackEngine() {
       header: 'Action',
       width: '100px',
       render: (row: ExecutionEntry) => (
-        <a 
-          href="#" 
+        <a
+          href="#"
           onClick={(e) => {
             e.preventDefault();
             navigate(`/detection?exec=${row.id}`);
@@ -296,11 +296,11 @@ export function AttackEngine() {
           return groupedAttacks.map((group) => {
             const sev = severityMap[group.severity] || severityMap.none;
             const isRunning = runningAttacks.has(group.baseName) || runningAttacks.has('all_running');
-            
+
             const groupResults = group.variants.map((v: Attack) => resultsMap.get(v.id)).filter(Boolean) as AttackResult[];
             const anyFailed = groupResults.some(r => !r.execution_success);
             const totalTime = groupResults.reduce((acc, r) => acc + r.execution_time, 0);
-            
+
             let worstSeverity = 'none';
             const severityLevels = ['none', 'low', 'medium', 'high', 'critical'];
             groupResults.forEach(r => {
@@ -312,11 +312,11 @@ export function AttackEngine() {
               }
             });
             const hasDetection = worstSeverity !== 'none';
-            
+
             return (
-              <GlassCard 
-                key={group.baseName} 
-                className={`attack-engine__card ${isRunning ? 'attack-engine__running-indicator' : ''}`} 
+              <GlassCard
+                key={group.baseName}
+                className={`attack-engine__card ${isRunning ? 'attack-engine__running-indicator' : ''}`}
                 hoverable
               >
                 <div className="attack-engine__card-header">
@@ -328,20 +328,20 @@ export function AttackEngine() {
                 </div>
                 <span className="attack-engine__card-category">{group.category}</span>
                 <p className="attack-engine__card-desc">{group.description}</p>
-                
+
                 {groupResults.length > 0 && (
                   <div className="attack-engine__card-result">
-                    <StatusBadge 
-                      variant={!anyFailed ? 'success' : 'failed'} 
-                      label={!anyFailed ? 'Success' : 'Failed'} 
+                    <StatusBadge
+                      variant={!anyFailed ? 'success' : 'failed'}
+                      label={!anyFailed ? 'Success' : 'Failed'}
                     />
                     <span className="attack-engine__card-time">{totalTime.toFixed(2)}s</span>
                     {hasDetection && (
                       <>
                         <span className="text-muted">•</span>
-                        <StatusBadge 
-                          variant={severityMap[worstSeverity].variant} 
-                          label={severityMap[worstSeverity].label + ' Detection'} 
+                        <StatusBadge
+                          variant={severityMap[worstSeverity].variant}
+                          label={severityMap[worstSeverity].label + ' Detection'}
                         />
                       </>
                     )}
@@ -350,8 +350,8 @@ export function AttackEngine() {
 
                 <div className="attack-engine__card-actions">
                   {groupResults.some(r => r.detection_report) && (
-                    <OutlineButton 
-                      size="sm" 
+                    <OutlineButton
+                      size="sm"
                       onClick={() => {
                         const resultWithDetection = groupResults.find(r => r.detection_report);
                         if (resultWithDetection) {
@@ -363,8 +363,8 @@ export function AttackEngine() {
                       View Detection
                     </OutlineButton>
                   )}
-                  <PrimaryButton 
-                    size="sm" 
+                  <PrimaryButton
+                    size="sm"
                     disabled={isRunning || !group.enabled}
                     onClick={() => handleRunAttackGroup(group)}
                   >

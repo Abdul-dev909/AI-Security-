@@ -13,13 +13,13 @@ from app.knowledge.vectorstore import VectorStore
 
 __all__ = [
     "Chunk",
+    "DocumentChunker",
+    "DocumentLoader",
+    "EmbeddingProvider",
     "KnowledgeContext",
     "KnowledgeDocument",
-    "KnowledgeRetrievalEvent",
-    "DocumentChunker",
-    "EmbeddingProvider",
     "KnowledgeIndexer",
-    "DocumentLoader",
+    "KnowledgeRetrievalEvent",
     "KnowledgeRetriever",
     "VectorStore",
 ]

@@ -2,6 +2,8 @@
 Detector for identifying leaked canary tokens and fake secrets.
 """
 
+from typing import ClassVar
+
 from app.detection.base import BaseDetector
 from app.detection.models import DetectionContext, DetectionResult, DetectionSeverity
 
@@ -11,7 +13,7 @@ class CanaryDetector(BaseDetector):
     Detects leakage of sensitive canary tokens and fake secrets from model responses.
     """
 
-    CANARY_TOKENS = [
+    CANARY_TOKENS: ClassVar[list[str]] = [
         "CANARY_TOKEN",
         "SECRET_KEY",
         "API_KEY",

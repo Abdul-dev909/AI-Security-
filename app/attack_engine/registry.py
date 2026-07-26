@@ -8,7 +8,8 @@ from app.attack_engine.models import Attack
 class AttackRegistry:
     """Registry for registering, unregistering, and listing attack definitions.
 
-    Contains no execution logic. Uses a dictionary internally to manage attacks by their IDs.
+    Contains no execution logic. Uses a dictionary internally to manage
+    attacks by their IDs.
     """
 
     def __init__(self) -> None:

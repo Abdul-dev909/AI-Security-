@@ -4,6 +4,11 @@ from __future__ import annotations
 
 import logging
 from collections.abc import AsyncGenerator, Callable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.knowledge.retriever import KnowledgeRetriever
+    from app.telemetry.manager import TelemetryManager
 
 from app.agent.context import AgentContext
 from app.agent.decisions import CapabilityResolver
@@ -56,6 +61,8 @@ class AgentRuntime:
         planner: AgentPlanner | None = None,
         executor: AgentExecutor | None = None,
         memory_manager: EnterpriseMemoryManager | None = None,
+        knowledge_retriever: KnowledgeRetriever | None = None,
+        telemetry_manager: TelemetryManager | None = None,
         generate_chat_fn: Callable[[list[dict[str, str]]], str] | None = None,
     ) -> None:
         self.conversation_manager = conversation_manager
@@ -66,6 +73,8 @@ class AgentRuntime:
         self.planner = planner or AgentPlanner()
         self.executor = executor or AgentExecutor(tool_manager=self.tool_manager)
         self.memory_manager = memory_manager or EnterpriseMemoryManager()
+        self.knowledge_retriever = knowledge_retriever
+        self.telemetry_manager = telemetry_manager
         self.generate_chat_fn = generate_chat_fn or generate_chat_response
 
     def process_request(self, request: AgentRequest) -> AgentResponse:
@@ -157,9 +166,6 @@ class AgentRuntime:
             self.conversation_manager.add_user_message(context.user_prompt)
             self.conversation_manager.add_assistant_message(context.raw_ai_response)
 
-            # Backward compatibility for old primitive memory tests
-            self.conversation_manager.save_memory_if_important(context.user_prompt)
-
             # Store in Enterprise Memory Manager
             self.memory_manager.process_memory(
                 session_id=context.session_id, content=context.user_prompt
@@ -184,6 +190,7 @@ class AgentRuntime:
             response_text=context.raw_ai_response or "",
             conversation_history=self.conversation_manager.get_messages(),
             capability_used=capability_name,
+            detection_report=getattr(context, "detection_report", None),
             tool_result=(None if not context.tool_result else None),
             total_duration_ms=total_duration_ms,
             stage_telemetry=context.stage_telemetry,
@@ -193,14 +200,11 @@ class AgentRuntime:
         self, context: AgentContext, total_duration_ms: float
     ) -> None:
         """Push a RuntimeTelemetryEvent to the TelemetryManager if available."""
-        try:
-            import app.main as _main_module
-            from app.telemetry import RuntimeTelemetryEvent
+        if not self.telemetry_manager:
+            return
 
-            tm = getattr(getattr(_main_module, "app", None), "state", None)
-            telemetry_manager = getattr(tm, "telemetry_manager", None) if tm else None
-            if telemetry_manager is None:
-                return
+        try:
+            from app.telemetry import RuntimeTelemetryEvent
 
             def _stage_latency(name: str) -> float:
                 for s in context.stage_telemetry:
@@ -226,14 +230,16 @@ class AgentRuntime:
                 ),
                 stage_count=len(context.stage_telemetry),
             )
-            telemetry_manager.record_runtime(event)
+            self.telemetry_manager.record_runtime(event)
         except Exception:
             pass
 
     def _capture_debug_snapshot(
         self, context: AgentContext, total_duration_ms: float
     ) -> None:
-        """Write a debug snapshot to app.state.debug_store when DEBUG_MODE is enabled."""
+        """Write a debug snapshot to app.state.debug_store when DEBUG_MODE is
+        enabled.
+        """
         try:
             from app.config import settings
 
@@ -316,12 +322,11 @@ class AgentRuntime:
         )
 
     def _stage_knowledge_retrieval(self, context: AgentContext) -> None:
+        if not self.knowledge_retriever:
+            context.record_stage("knowledge_retrieval", 0.0, status="SKIPPED")
+            return
+
         with execution_timer() as timer:
-            if not hasattr(self, "knowledge_retriever"):
-                from app.knowledge import KnowledgeRetriever
-
-                self.knowledge_retriever = KnowledgeRetriever()
-
             knowledge_context = self.knowledge_retriever.retrieve(context.user_prompt)
             context.knowledge_context = knowledge_context
 
@@ -373,14 +378,11 @@ class AgentRuntime:
             },
         )
         # Fire-and-forget telemetry
-        try:
-            import app.main as _m
-            from app.telemetry import ToolTelemetryEvent
+        if self.telemetry_manager:
+            try:
+                from app.telemetry import ToolTelemetryEvent
 
-            tm = getattr(getattr(_m, "app", None), "state", None)
-            tel = getattr(tm, "telemetry_manager", None) if tm else None
-            if tel:
-                tel.record_tool(
+                self.telemetry_manager.record_tool(
                     ToolTelemetryEvent(
                         request_id=context.request_id,
                         session_id=context.session_id,
@@ -390,8 +392,8 @@ class AgentRuntime:
                         error=result.error_message,
                     )
                 )
-        except Exception:
-            pass
+            except Exception:
+                pass
 
     def _stage_prompt_building(self, context: AgentContext) -> None:
         tool_output = (

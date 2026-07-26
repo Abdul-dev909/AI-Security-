@@ -67,7 +67,8 @@ class KnowledgeIndexer:
                     count = self.vectorstore.count()
                     if count > 0:
                         logger.info(
-                            "Knowledge index is up-to-date (hash matched, %d chunks). Skipping indexing.",
+                            "Knowledge index is up-to-date (hash matched, %d chunks). "
+                            "Skipping indexing.",
                             count,
                         )
                         return

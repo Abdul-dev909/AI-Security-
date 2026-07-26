@@ -34,7 +34,7 @@ class VectorStore:
                 )
             except ImportError:
                 logger.error("chromadb is not installed.")
-                raise RuntimeError("chromadb is required for VectorStore.")
+                raise RuntimeError("chromadb is required for VectorStore.") from None
 
     def add_chunks(self, chunks: list[Chunk], embeddings: list[list[float]]) -> None:
         """Add chunks to the vector database."""
@@ -47,13 +47,14 @@ class VectorStore:
         metadatas = []
         for c in chunks:
             meta = c.metadata.model_dump()
-            # ChromaDB doesn't natively support datetime or nested dicts in metadata directly
+            # ChromaDB doesn't natively support datetime or nested dicts in
+            # metadata directly
             # Ensure safe serialization for ChromaDB
             safe_meta = {}
             for k, v in meta.items():
                 if v is None:
                     continue
-                if isinstance(v, (str, int, float, bool)):
+                if isinstance(v, str | int | float | bool):
                     safe_meta[k] = v
                 else:
                     safe_meta[k] = str(v)
@@ -88,8 +89,10 @@ class VectorStore:
             meta_dict = results["metadatas"][0][i]
             distance = results["distances"][0][i] if results.get("distances") else 0.0
 
-            # Convert distance to a similarity score (assuming cosine or L2, just inverting/normalizing)
-            # ChromaDB default is L2. Lower is more similar. Let's invert it for similarity score.
+            # Convert distance to a similarity score (assuming cosine or L2,
+            # just inverting/normalizing)
+            # ChromaDB default is L2. Lower is more similar. Let's invert it for
+            # similarity score.
             similarity = 1.0 / (1.0 + distance)
 
             document_id = meta_dict.pop("document_id", "")

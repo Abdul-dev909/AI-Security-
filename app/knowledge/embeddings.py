@@ -22,7 +22,7 @@ class EmbeddingProvider:
                 logger.error("sentence-transformers is not installed.")
                 raise RuntimeError(
                     "sentence-transformers is required for EmbeddingProvider."
-                )
+                ) from None
 
     def embed_text(self, text: str) -> list[float]:
         """Embed a single string of text."""

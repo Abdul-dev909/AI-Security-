@@ -40,7 +40,7 @@ class DocumentChunker:
                     Chunk(
                         document_id=document.document_id,
                         text=chunk_text,
-                        metadata=document.metadata,  # Preserves rich enterprise metadata
+                        metadata=document.metadata,  # Preserves rich metadata
                     )
                 )
 

@@ -8,17 +8,15 @@ from fastapi.responses import StreamingResponse
 
 from app.agent import AgentRequest, AgentRuntime
 from app.conversation import ConversationManager
-from app.detection import DetectionCoordinator
-from app.detection.models import DetectionContext
 from app.ollama_client import generate_chat_response, generate_chat_response_async
 from app.schemas import ChatRequest, ChatResponse
 
 __all__ = [
-    "router",
     "chat",
     "chat_stream",
     "generate_chat_response",
     "generate_chat_response_async",
+    "router",
 ]
 
 router = APIRouter()
@@ -35,11 +33,6 @@ def get_conversation_manager(request: Request) -> ConversationManager:
     return request.app.state.conversation_manager
 
 
-def get_detection_coordinator(request: Request) -> DetectionCoordinator:
-    """Return the shared detection coordinator stored on the FastAPI app."""
-    return request.app.state.detection_coordinator
-
-
 @router.post(
     "/chat",
     response_model=ChatResponse,
@@ -50,7 +43,6 @@ async def chat(
     request: ChatRequest = Body(...),
     agent_runtime: AgentRuntime = Depends(get_agent_runtime),
     conversation_manager: ConversationManager = Depends(get_conversation_manager),
-    detection_coordinator: DetectionCoordinator = Depends(get_detection_coordinator),
 ) -> ChatResponse:
     """Send a user message through the Agent Runtime staged pipeline asynchronously."""
     logger.info("User message received via Chat API: %s", request.message)
@@ -61,17 +53,10 @@ async def chat(
     )
     agent_resp = await agent_runtime.process_request_async(agent_req)
 
-    context = DetectionContext(
-        user_prompt=request.message,
-        ai_response=agent_resp.response_text,
-        conversation_history=conversation_manager.get_messages(),
-    )
-    report = detection_coordinator.run_detection(context)
-
     return ChatResponse(
         response=agent_resp.response_text,
         history=conversation_manager.get_messages(),
-        detection=report,
+        detection=agent_resp.detection_report,
     )
 
 

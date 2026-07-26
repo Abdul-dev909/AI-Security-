@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import time
 
 from fastapi import APIRouter, Depends, Request
@@ -29,10 +30,8 @@ def get_diagnostics(
     memory_manager = getattr(request.app.state, "memory_manager", None)
     active_sessions = 0
     if memory_manager and hasattr(memory_manager, "session_manager"):
-        try:
+        with contextlib.suppress(Exception):
             active_sessions = memory_manager.session_manager.session_count()
-        except Exception:
-            pass
 
     # --- Telemetry buffer stats ---
     telemetry_manager = getattr(request.app.state, "telemetry_manager", None)
@@ -63,7 +62,7 @@ def get_diagnostics(
                 ),
             }
 
-        tool_events = telemetry_manager.get_tool_events(limit=500)
+        telemetry_manager.get_tool_events(limit=500)
         tool_execs_total = buffer_stats.get("tools", {}).get("total_pushed", 0)
 
     # --- Vector count ---

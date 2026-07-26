@@ -18,7 +18,8 @@ class SessionManager:
         # In a distributed environment, this could be Redis.
         # For our zero-setup architecture, it's an in-memory dictionary.
         self._sessions: dict[str, Session] = {}
-        # Simple tracking of short-term state that shouldn't be persisted to long-term memory
+        # Simple tracking of short-term state that shouldn't be persisted to
+        # long-term memory
         self._runtime_state: dict[str, dict[str, Any]] = {}
 
     def get_or_create_session(self, session_id: str | None = None) -> Session:
@@ -28,7 +29,7 @@ class SessionManager:
 
         if session_id in self._sessions:
             session = self._sessions[session_id]
-            session.last_accessed_at = datetime.datetime.utcnow()
+            session.last_accessed_at = datetime.datetime.now(datetime.timezone.utc)
             return session
 
         session = Session(session_id=session_id)
@@ -41,7 +42,7 @@ class SessionManager:
         """Retrieve a session without creating it if it doesn't exist."""
         session = self._sessions.get(session_id)
         if session:
-            session.last_accessed_at = datetime.datetime.utcnow()
+            session.last_accessed_at = datetime.datetime.now(datetime.timezone.utc)
         return session
 
     def set_session_metadata(self, session_id: str, key: str, value: Any) -> None:

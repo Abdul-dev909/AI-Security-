@@ -27,7 +27,10 @@ class LsTool(BaseTool):
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "Relative sandbox directory path to list. Defaults to root ('.').",
+                    "description": (
+                        "Relative sandbox directory path to list. Defaults "
+                        "to root ('.')."
+                    ),
                     "default": ".",
                 }
             },

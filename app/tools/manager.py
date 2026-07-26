@@ -1,4 +1,6 @@
-"""ToolManager orchestrates tool execution, measures execution time, and emits audit telemetry."""
+"""ToolManager orchestrates tool execution, measures execution time, and
+emits audit telemetry.
+"""
 
 from __future__ import annotations
 
@@ -19,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 class ToolManager:
-    """Enterprise Tool Manager orchestrating tool invocation, timing, and security audit telemetry."""
+    """Enterprise Tool Manager orchestrating tool invocation, timing, and
+    security audit telemetry.
+    """
 
     def __init__(
         self,

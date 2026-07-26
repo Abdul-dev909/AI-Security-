@@ -6,7 +6,7 @@ This file explains this full-stack project in simple, beginner-friendly terms. I
 
 ## 1. What this Project Is
 
-This is a full-stack AI Security Command Center application. It is designed to show how a local AI assistant (using Ollama) can be integrated into a web-based management console. 
+This is a full-stack AI Security Command Center application. It is designed to show how a local AI assistant (using Ollama) can be integrated into a web-based management console.
 
 The project consists of:
 *   **A Python FastAPI Backend**: Serves API endpoints, holds conversation history, and handles SQLite database queries.

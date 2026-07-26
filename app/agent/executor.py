@@ -9,7 +9,9 @@ from app.tools.models import ToolExecutionResult
 
 
 class AgentExecutor:
-    """Executes capability tool requests via ToolManager and formats output for prompt context."""
+    """Executes capability tool requests via ToolManager and formats output
+    for prompt context.
+    """
 
     def __init__(self, tool_manager: ToolManager | None = None) -> None:
         self.tool_manager = tool_manager or ToolManager()
@@ -34,7 +36,9 @@ class AgentExecutor:
         )
 
     def _format_result_text(self, res: ToolExecutionResult) -> str:
-        """Format raw result dictionary into structured markdown for context injection."""
+        """Format raw result dictionary into structured markdown
+        for context injection.
+        """
         if not res.success:
             return f"Tool '{res.tool}' Execution Error: {res.error}"
 
@@ -46,7 +50,8 @@ class AgentExecutor:
         if res.tool == "cat":
             path = payload.get("path", "")
             content = payload.get("content", "")
-            return f"--- START FILE CONTEXT: {path} ---\n{content}\n--- END FILE CONTEXT ---"
+            return f"--- START FILE CONTEXT: {path} ---\n{content}\n"
+            "--- END FILE CONTEXT ---"
 
         # Format ls output
         if res.tool == "ls":
