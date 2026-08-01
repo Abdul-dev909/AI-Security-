@@ -1,25 +1,27 @@
-"""Attack Executor for running a single attack against the AI agent."""
+"""Compatibility Attack Executor for running a single attack against the AI agent."""
 
 from __future__ import annotations
 
 import logging
 
 from app.attack_engine.models import Attack, AttackResult
+from app.attacks import (
+    AttackDefinition,
+    AttackTechnique,
+    AttackVariant,
+    SingleTurnStrategy,
+)
+from app.attacks.executor import AttackExecutor as EnterpriseAttackExecutor
+from app.attacks.metadata import AttackCategory, AttackSeverity
 from app.conversation import ConversationManager
 from app.detection.coordinator import DetectionCoordinator
-from app.detection.models import DetectionContext
 from app.ollama_client import generate_chat_response
 from app.prompts import PromptBuilder
-from app.utils import execution_timer
-
 logger = logging.getLogger(__name__)
 
 
 class AttackExecutor:
-    """Executor responsible for running a single Attack definition against the AI agent.
-
-    Integrates with the existing conversation manager and prompt builder.
-    """
+    """Compatibility executor that delegates to the enterprise attack executor."""
 
     def __init__(
         self,
@@ -37,74 +39,90 @@ class AttackExecutor:
         self.prompt_builder = prompt_builder
         self.conversation_manager = conversation_manager
         self.detection_coordinator = detection_coordinator
+        self._enterprise_executor = EnterpriseAttackExecutor(
+            prompt_builder=prompt_builder,
+            conversation_manager=conversation_manager,
+            detection_coordinator=detection_coordinator,
+            # Wrap the module-level `generate_chat_response` in a callable so
+            # tests can monkeypatch `app.attack_engine.executor.generate_chat_response`
+            # and have the updated function used at runtime even if the
+            # enterprise executor was constructed earlier.
+            response_generator=lambda messages: generate_chat_response(messages),
+        )
+
+    def _convert_legacy_attack(self, attack: Attack) -> AttackDefinition:
+        """Project the legacy attack model into the structured attack model."""
+
+        category_map = {
+            "prompt injection": AttackCategory.PROMPT_INJECTION,
+            "jailbreak": AttackCategory.JAILBREAK,
+            "prompt leakage": AttackCategory.PROMPT_LEAKAGE,
+            "canary extraction": AttackCategory.CANARY_EXTRACTION,
+            "memory manipulation": AttackCategory.MEMORY_MANIPULATION,
+        }
+        severity_map = {
+            "low": AttackSeverity.LOW,
+            "medium": AttackSeverity.MEDIUM,
+            "high": AttackSeverity.HIGH,
+            "critical": AttackSeverity.CRITICAL,
+        }
+
+        category = category_map.get(attack.category.lower(), AttackCategory.PROMPT_INJECTION)
+        severity = severity_map.get(attack.severity.lower(), AttackSeverity.MEDIUM)
+
+        technique_map = {
+            AttackCategory.PROMPT_INJECTION: AttackTechnique.INSTRUCTION_OVERRIDE,
+            AttackCategory.JAILBREAK: AttackTechnique.PERSONA_SUBVERSION,
+            AttackCategory.PROMPT_LEAKAGE: AttackTechnique.SYSTEM_PROMPT_EXTRACTION,
+            AttackCategory.CANARY_EXTRACTION: AttackTechnique.CANARY_DISCLOSURE,
+            AttackCategory.MEMORY_MANIPULATION: AttackTechnique.MEMORY_DISCLOSURE,
+        }
+
+        return AttackDefinition(
+            attack_id=attack.id,
+            name=attack.name,
+            category=category,
+            technique=technique_map[category],
+            severity=severity,
+            description=attack.description,
+            objectives=[attack.description],
+            prerequisites=["Conversation channel available"],
+            supported_modes=["single-turn"],
+            variants=[
+                AttackVariant(
+                    variant_id=attack.id,
+                    name=attack.name,
+                    prompt=attack.prompt,
+                    enabled=attack.enabled,
+                    metadata={"definition_name": attack.name},
+                )
+            ],
+            tags=[attack.category, attack.severity],
+            version="1.0.0",
+        )
 
     def execute(self, attack: Attack) -> AttackResult:
         """Execute a single attack against the AI agent.
 
-        Clears the conversation history before execution to isolate the attack,
-        measures execution time, and captures any execution-related exceptions.
-
-        Args:
-            attack: The Attack model instance containing the prompt to execute.
-
-        Returns:
-            An AttackResult model instance summarizing the execution details.
+        The enterprise executor now handles the lifecycle, while the legacy API
+        continues to return the original ``AttackResult`` shape.
         """
+
         logger.info("Executing attack: %s (ID: %s)", attack.name, attack.id)
 
-        # Clear the history of the conversation manager to ensure attack isolation
-        self.conversation_manager.clear_history()
+        enterprise_attack = self._convert_legacy_attack(attack)
+        enterprise_result = self._enterprise_executor.execute(enterprise_attack)
 
-        response: str | None = None
-        execution_success = False
-        error_msg: str | None = None
-
-        with execution_timer() as elapsed:
-            try:
-                # 1. Build messages using the prompt builder and the attack prompt
-                messages = self.prompt_builder.build_messages(
-                    user_message=attack.prompt,
-                    memories=[],
-                    conversation_history=self.conversation_manager.get_messages(),
-                )
-
-                # 2. Call the existing AI agent via generate_chat_response
-                response = generate_chat_response(messages)
-
-                # 3. Update the conversation history
-                self.conversation_manager.add_user_message(attack.prompt)
-                self.conversation_manager.add_assistant_message(response)
-
-                execution_success = True
-            except Exception as exc:
-                logger.exception("Error executing attack '%s'", attack.id)
-                error_msg = f"{type(exc).__name__}: {exc!s}"
-                execution_success = False
-
-        detection_report = None
-        if execution_success and response is not None:
-            context = DetectionContext(
-                user_prompt=attack.prompt,
-                ai_response=response,
-                conversation_history=self.conversation_manager.get_messages(),
-            )
-            detection_report = self.detection_coordinator.run_detection(context)
-        else:
+        if not enterprise_result.success and enterprise_result.error is not None:
             logger.info("Attack execution failed; skipping detection.")
-
-        logger.info(
-            "Attack execution finished for: %s (ID: %s)",
-            attack.name,
-            attack.id,
-        )
 
         return AttackResult(
             attack_id=attack.id,
             attack_name=attack.name,
             prompt=attack.prompt,
-            response=response,
-            execution_success=execution_success,
-            error=error_msg,
-            execution_time=elapsed(),
-            detection_report=detection_report,
+            response=enterprise_result.response,
+            execution_success=enterprise_result.success,
+            error=enterprise_result.error,
+            execution_time=enterprise_result.execution_time,
+            detection_report=enterprise_result.detection_report,
         )
