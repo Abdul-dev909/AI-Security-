@@ -55,3 +55,28 @@ class ExecutionMode(_StringEnum):
     MANUAL = "manual"
     AUTOMATED = "automated"
     HYBRID = "hybrid"
+
+
+class MessageSender(_StringEnum):
+    """Sources of messages in an attack conversation."""
+    
+    ATTACKER_AI = "ATTACKER_AI"
+    ATTACKER_USER = "ATTACKER_USER"
+    VICTIM_AI = "VICTIM_AI"
+    SYSTEM = "SYSTEM"
+    FRAMEWORK = "FRAMEWORK"
+
+
+class OrchestratorState(_StringEnum):
+    """Runtime states for the attack orchestrator."""
+    
+    CREATED = "CREATED"
+    INITIALIZED = "INITIALIZED"
+    PREPARING = "PREPARING"
+    RUNNING = "RUNNING"
+    WAITING_FOR_RESPONSE = "WAITING_FOR_RESPONSE"
+    ANALYZING = "ANALYZING"
+    RETRYING = "RETRYING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    ABORTED = "ABORTED"

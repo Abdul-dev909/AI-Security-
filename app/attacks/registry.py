@@ -8,6 +8,7 @@ from app.attack_engine.models import Attack as LegacyAttack
 
 from .metadata import AttackCategory, AttackTechnique
 from .models import AttackDefinition
+from .plugin import AttackPlugin
 from .validation import (
     normalize_category,
     normalize_technique,
@@ -20,6 +21,7 @@ class AttackRegistry:
 
     def __init__(self) -> None:
         self._definitions: dict[str, AttackDefinition] = {}
+        self._plugins: dict[str, AttackPlugin] = {}
 
     def register(self, attack: AttackDefinition) -> None:
         attack = validate_attack_definition(attack)
@@ -28,6 +30,15 @@ class AttackRegistry:
                 f"Attack with ID '{attack.attack_id}' is already registered."
             )
         self._definitions[attack.attack_id] = attack
+
+    def register_plugin(self, plugin: AttackPlugin) -> None:
+        """Register an attack plugin."""
+        self.register(plugin.definition)
+        self._plugins[plugin.definition.attack_id] = plugin
+
+    def get_plugin(self, attack_id: str) -> AttackPlugin | None:
+        """Retrieve a registered plugin by attack ID."""
+        return self._plugins.get(attack_id)
 
     def load(self, attacks: Iterable[AttackDefinition]) -> list[AttackDefinition]:
         loaded: list[AttackDefinition] = []
@@ -63,3 +74,4 @@ class AttackRegistry:
 
     def clear(self) -> None:
         self._definitions.clear()
+        self._plugins.clear()

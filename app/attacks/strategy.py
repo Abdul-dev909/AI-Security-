@@ -13,12 +13,14 @@ class AttackStage(str):
     """Logical stage names for an attack lifecycle."""
     RECONNAISSANCE = "reconnaissance"
     TRUST_BUILDING = "trust_building"
-    CONTEXT_EXPANSION = "context_expansion"
+    CAPABILITY_DISCOVERY = "capability_discovery"
+    PAYLOAD_PREPARATION = "payload_preparation"
     PAYLOAD_DELIVERY = "payload_delivery"
-    ADAPTIVE_FOLLOWUP = "adaptive_followup"
-    RETRY_RECOVERY = "retry_recovery"
+    PROMPT_INJECTION = "prompt_injection"
+    ESCALATION = "escalation"
+    PERSISTENCE_ATTEMPT = "persistence_attempt"
     EVALUATION = "evaluation"
-    DETECTION = "detection"
+    COMPLETION = "completion"
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +58,36 @@ class AttackStrategy(ABC):
         """Optional execution mode this strategy is designed for."""
         return None
 
+    # Lifecycle Methods (Architecture only)
+
+    @abstractmethod
+    def prepare(self, session: Any, context: Any) -> None:
+        """Prepare the strategy for execution."""
+
+    @abstractmethod
+    def generate_next_prompt(self, session: Any, context: Any) -> str:
+        """Generate the next prompt for the attack."""
+
+    @abstractmethod
+    def evaluate_response(self, response: str, session: Any, context: Any) -> Any:
+        """Evaluate the response from the victim."""
+
+    @abstractmethod
+    def should_retry(self, session: Any, context: Any) -> bool:
+        """Determine if the strategy should retry the current stage."""
+
+    @abstractmethod
+    def next_stage(self, session: Any, context: Any) -> str | None:
+        """Determine the next stage in the lifecycle."""
+
+    @abstractmethod
+    def is_stage_complete(self, session: Any, context: Any) -> bool:
+        """Check if the current stage has been completed."""
+
+    @abstractmethod
+    def is_attack_complete(self, session: Any, context: Any) -> bool:
+        """Check if the entire attack has completed."""
+
 
 @dataclass(frozen=True, slots=True)
 class SingleTurnStrategy(AttackStrategy):
@@ -72,10 +104,32 @@ class SingleTurnStrategy(AttackStrategy):
             AttackStage.TRUST_BUILDING,
             AttackStage.PAYLOAD_DELIVERY,
             AttackStage.EVALUATION,
+            AttackStage.COMPLETION,
         )
 
     def describe(self) -> str:
         return f"Single-turn execution path for {self.technique.value}."
+
+    def prepare(self, session: Any, context: Any) -> None:
+        pass
+
+    def generate_next_prompt(self, session: Any, context: Any) -> str:
+        return ""
+
+    def evaluate_response(self, response: str, session: Any, context: Any) -> Any:
+        pass
+
+    def should_retry(self, session: Any, context: Any) -> bool:
+        return False
+
+    def next_stage(self, session: Any, context: Any) -> str | None:
+        return None
+
+    def is_stage_complete(self, session: Any, context: Any) -> bool:
+        return True
+
+    def is_attack_complete(self, session: Any, context: Any) -> bool:
+        return True
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,13 +141,23 @@ class ManualAttackStrategy(AttackStrategy):
         return (
             AttackStage.RECONNAISSANCE,
             AttackStage.TRUST_BUILDING,
-            AttackStage.CONTEXT_EXPANSION,
+            AttackStage.CAPABILITY_DISCOVERY,
+            AttackStage.PAYLOAD_PREPARATION,
             AttackStage.PAYLOAD_DELIVERY,
             AttackStage.EVALUATION,
+            AttackStage.COMPLETION,
         )
 
     def describe(self) -> str:
         return f"Manual execution strategy for {self.technique.value}."
+
+    def prepare(self, session: Any, context: Any) -> None: pass
+    def generate_next_prompt(self, session: Any, context: Any) -> str: return ""
+    def evaluate_response(self, response: str, session: Any, context: Any) -> Any: pass
+    def should_retry(self, session: Any, context: Any) -> bool: return False
+    def next_stage(self, session: Any, context: Any) -> str | None: return None
+    def is_stage_complete(self, session: Any, context: Any) -> bool: return True
+    def is_attack_complete(self, session: Any, context: Any) -> bool: return True
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,11 +170,19 @@ class AutomatedAttackStrategy(AttackStrategy):
             AttackStage.RECONNAISSANCE,
             AttackStage.PAYLOAD_DELIVERY,
             AttackStage.EVALUATION,
-            AttackStage.DETECTION,
+            AttackStage.COMPLETION,
         )
 
     def describe(self) -> str:
         return f"Automated execution strategy for {self.technique.value}."
+
+    def prepare(self, session: Any, context: Any) -> None: pass
+    def generate_next_prompt(self, session: Any, context: Any) -> str: return ""
+    def evaluate_response(self, response: str, session: Any, context: Any) -> Any: pass
+    def should_retry(self, session: Any, context: Any) -> bool: return False
+    def next_stage(self, session: Any, context: Any) -> str | None: return None
+    def is_stage_complete(self, session: Any, context: Any) -> bool: return True
+    def is_attack_complete(self, session: Any, context: Any) -> bool: return True
 
 
 @dataclass(frozen=True, slots=True)
@@ -123,10 +195,18 @@ class HybridAttackStrategy(AttackStrategy):
             AttackStage.RECONNAISSANCE,
             AttackStage.TRUST_BUILDING,
             AttackStage.PAYLOAD_DELIVERY,
-            AttackStage.ADAPTIVE_FOLLOWUP,
+            AttackStage.ESCALATION,
             AttackStage.EVALUATION,
-            AttackStage.DETECTION,
+            AttackStage.COMPLETION,
         )
 
     def describe(self) -> str:
         return f"Hybrid execution strategy for {self.technique.value}."
+
+    def prepare(self, session: Any, context: Any) -> None: pass
+    def generate_next_prompt(self, session: Any, context: Any) -> str: return ""
+    def evaluate_response(self, response: str, session: Any, context: Any) -> Any: pass
+    def should_retry(self, session: Any, context: Any) -> bool: return False
+    def next_stage(self, session: Any, context: Any) -> str | None: return None
+    def is_stage_complete(self, session: Any, context: Any) -> bool: return True
+    def is_attack_complete(self, session: Any, context: Any) -> bool: return True

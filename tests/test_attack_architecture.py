@@ -13,6 +13,9 @@ from app.attacks import (
     PROMPT_INJECTION,
     load_builtin_attacks,
 )
+from app.attacks.orchestrator import AttackOrchestrator
+from app.attacks.events import EventBus
+from app.attacks.storage import InMemorySessionStore
 from app.conversation import ConversationManager
 from app.detection.coordinator import DetectionCoordinator
 from app.detection.registry import DetectorRegistry
@@ -88,8 +91,13 @@ def test_attack_executor_generates_normalized_result() -> None:
         detection_coordinator=detection_coordinator,
         response_generator=fake_response_generator,
     )
+    orchestrator = AttackOrchestrator(
+        executor=executor,
+        session_store=InMemorySessionStore(),
+        event_bus=EventBus(),
+    )
 
-    result = executor.execute(PROMPT_INJECTION)
+    result = orchestrator.execute_attack(PROMPT_INJECTION)
 
     assert result.attack_id == "prompt-injection"
     assert result.success is True

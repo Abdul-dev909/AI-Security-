@@ -11,7 +11,10 @@ from app.attacks import (
     AttackVariant,
     SingleTurnStrategy,
 )
+from app.attacks.orchestrator import AttackOrchestrator
 from app.attacks.executor import AttackExecutor as EnterpriseAttackExecutor
+from app.attacks.storage import InMemorySessionStore
+from app.attacks.events import EventBus
 from app.attacks.metadata import AttackCategory, AttackSeverity
 from app.conversation import ConversationManager
 from app.detection.coordinator import DetectionCoordinator
@@ -43,11 +46,14 @@ class AttackExecutor:
             prompt_builder=prompt_builder,
             conversation_manager=conversation_manager,
             detection_coordinator=detection_coordinator,
-            # Wrap the module-level `generate_chat_response` in a callable so
-            # tests can monkeypatch `app.attack_engine.executor.generate_chat_response`
-            # and have the updated function used at runtime even if the
-            # enterprise executor was constructed earlier.
             response_generator=lambda messages: generate_chat_response(messages),
+        )
+        self._session_store = InMemorySessionStore()
+        self._event_bus = EventBus()
+        self._orchestrator = AttackOrchestrator(
+            executor=self._enterprise_executor,
+            session_store=self._session_store,
+            event_bus=self._event_bus,
         )
 
     def _convert_legacy_attack(self, attack: Attack) -> AttackDefinition:
@@ -111,7 +117,7 @@ class AttackExecutor:
         logger.info("Executing attack: %s (ID: %s)", attack.name, attack.id)
 
         enterprise_attack = self._convert_legacy_attack(attack)
-        enterprise_result = self._enterprise_executor.execute(enterprise_attack)
+        enterprise_result = self._orchestrator.execute_attack(enterprise_attack)
 
         if not enterprise_result.success and enterprise_result.error is not None:
             logger.info("Attack execution failed; skipping detection.")

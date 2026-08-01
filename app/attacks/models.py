@@ -11,7 +11,14 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.attack_engine.models import Attack as LegacyAttack
 from app.detection.models import DetectionReport
 
-from .metadata import AttackCategory, AttackSeverity, AttackTechnique, ExecutionMode
+from .metadata import (
+    AttackCategory, 
+    AttackSeverity, 
+    AttackTechnique, 
+    ExecutionMode, 
+    MessageSender, 
+    OrchestratorState
+)
 
 
 def _utcnow() -> datetime:
@@ -30,6 +37,16 @@ class AttackVariant(BaseModel):
     enabled: bool = Field(default=True)
     tags: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
+    
+    # Variant execution behavior metadata
+    execution_profile: str | None = None
+    conversation_style: str | None = None
+    aggressiveness: str | None = None
+    patience_level: str | None = None
+    retry_policy: str | None = None
+    escalation_policy: str | None = None
+    trust_building_style: str | None = None
+    preferred_stage_order: list[str] | None = None
 
     def to_legacy_attack(self, definition: AttackDefinition) -> LegacyAttack:
         return LegacyAttack(
@@ -97,6 +114,71 @@ class AttackDefinition(BaseModel):
         return [variant.to_legacy_attack(self) for variant in self.enabled_variants()]
 
 
+class AttackObjective(BaseModel):
+    """An objective that an attack aims to achieve."""
+    
+    model_config = ConfigDict(extra="forbid")
+    
+    objective_id: str = Field(default_factory=lambda: str(uuid4()))
+    name: str = Field(..., min_length=1)
+    description: str = Field(..., min_length=1)
+    priority: int = Field(default=1)
+    success_conditions: list[str] = Field(default_factory=list)
+    failure_conditions: list[str] = Field(default_factory=list)
+    completion_status: str = Field(default="pending")
+
+
+class AttackMessage(BaseModel):
+    """A single structured message in the attack conversation."""
+    
+    model_config = ConfigDict(extra="forbid")
+    
+    message_id: str = Field(default_factory=lambda: str(uuid4()))
+    sender: MessageSender
+    role: str = Field(..., min_length=1)
+    timestamp: datetime = Field(default_factory=_utcnow)
+    stage: str | None = None
+    turn_number: int = Field(default=0, ge=0)
+    content: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    token_count: int | None = None
+    sequence_number: int = Field(default=0)
+    latency: float | None = None
+    message_type: str | None = None
+    correlation_id: str | None = None
+
+
+class AttackTimelineEvent(BaseModel):
+    """A timestamped event in the attack lifecycle."""
+    
+    model_config = ConfigDict(extra="forbid")
+    
+    id: str = Field(default_factory=lambda: str(uuid4()))
+    timestamp: datetime = Field(default_factory=_utcnow)
+    stage: str | None = None
+    event_type: str = Field(..., min_length=1)
+    description: str = Field(default="")
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    sequence_number: int = Field(default=0)
+    correlation_id: str | None = None
+
+
+class StrategyContext(BaseModel):
+    """Runtime state explicitly isolated for strategy execution."""
+    
+    model_config = ConfigDict(extra="forbid")
+    
+    current_objective: str | None = None
+    discovered_capabilities: list[str] = Field(default_factory=list)
+    trust_score: float = Field(default=0.0)
+    previous_refusals: int = Field(default=0)
+    payload_history: list[str] = Field(default_factory=list)
+    observations: list[str] = Field(default_factory=list)
+    reasoning_notes: str | None = None
+    attack_progress: float = Field(default=0.0)
+    stage_specific_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class AttackSession(BaseModel):
     """Execution state for a single attack run."""
 
@@ -124,14 +206,34 @@ class AttackSession(BaseModel):
 
     # Events / timeline / metrics
     execution_events: list[dict[str, Any]] = Field(default_factory=list)
-    timeline: list[dict[str, Any]] = Field(default_factory=list)
+    timeline: list[dict[str, Any]] = Field(default_factory=list) # kept for compat
     metrics: dict[str, Any] = Field(default_factory=dict)
+    structured_timeline: list[AttackTimelineEvent] = Field(default_factory=list)
+    structured_messages: list[AttackMessage] = Field(default_factory=list)
 
     # Result placeholder and misc
     execution_result: dict[str, Any] | None = None
     retry_count: int = Field(default=0, ge=0)
     messages: list[dict[str, str]] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
+    
+    # Progress & execution state tracking
+    progress: float = Field(default=0.0)
+    current_turn: int = Field(default=0, ge=0)
+    completed_turns: int = Field(default=0, ge=0)
+    completed_stages: list[str] = Field(default_factory=list)
+    percentage_complete: float = Field(default=0.0)
+    estimated_remaining_turns: int = Field(default=0, ge=0)
+    execution_duration: float = Field(default=0.0)
+    refusal_count: int = Field(default=0, ge=0)
+    discovered_capabilities: list[str] = Field(default_factory=list)
+    successful_payload: str | None = None
+    failed_payloads: list[str] = Field(default_factory=list)
+    tool_usage: list[dict[str, Any]] = Field(default_factory=list)
+    memory_snapshot: dict[str, Any] = Field(default_factory=dict)
+    knowledge_snapshot: dict[str, Any] = Field(default_factory=dict)
+    evaluation_summary: dict[str, Any] = Field(default_factory=dict)
+    execution_summary: dict[str, Any] = Field(default_factory=dict)
 
     def start(self, *, stage: str | None = None) -> None:
         self.status = "running"
